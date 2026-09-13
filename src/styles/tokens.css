@@ -1,0 +1,180 @@
+/* =====================================================================
+   SRI RAM ENTERPRISES — design tokens
+   ---------------------------------------------------------------------
+   One dark interface, defined once. Every colour, size and rhythm in the
+   product resolves to a token here; components never hard-code a value.
+   ===================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Planes -------------------------------------------------------
+     Four surfaces, each one small step off the last. Depth comes from
+     that step plus a hairline, never from a shadow or a glow.          */
+  --bg:            #09090B;
+  --surface-1:     #0F0F12;
+  --surface-2:     #16161A;
+  --surface-3:     #1D1D22;
+  --surface-sunk:  #0B0B0E;
+
+  /* --- Hairlines ---------------------------------------------------- */
+  --border:        #232329;
+  --border-strong: #33333C;
+  --border-faint:  #1B1B20;
+
+  /* --- Ink -----------------------------------------------------------
+     Contrast on --surface-1: 17.6 / 7.6 / 3.8 : 1.                     */
+  --text-primary:   #F5F5F7;
+  --text-secondary: #A2A2AC;
+  --text-muted:     #6E6E78;
+  --text-inverse:   #0A0A0B;
+
+  /* --- Brand ---------------------------------------------------------
+     Gold carries primary actions and operational emphasis. Nothing else
+     in the interface is allowed to be this colour.                     */
+  --accent:          #E9963A;
+  --accent-hover:    #F4A653;
+  --accent-active:   #D5872F;
+  --accent-quiet:    #8A5D22;
+  --accent-ink:      #1A1105;
+
+  /* --- Financial polarity --------------------------------------------
+     Text steps are tuned for legibility (>= 6.7:1); the -mark steps sit
+     inside the chart lightness band (OKLCH L 0.48-0.67) so they read as
+     fills rather than glowing. Green/red always ride a second cue — the
+     zero baseline, a sign, or a label — never hue alone.               */
+  --positive:        #4ED897;
+  --positive-mark:   #2FAD70;
+  --positive-wash:   rgba(47, 173, 112, 0.14);
+  --negative:        #F2726A;
+  --negative-mark:   #D2544B;
+  --negative-wash:   rgba(210, 84, 75, 0.14);
+  --warning:         #E0A227;
+  --warning-wash:    rgba(224, 162, 39, 0.14);
+  --accent-wash:     rgba(233, 150, 58, 0.12);
+  --info-wash:       rgba(78, 143, 232, 0.14);
+
+  /* --- Chart series (validated, fixed order — never cycled) ----------
+     Passes lightness band, chroma floor, adjacent-pair CVD separation,
+     normal-vision floor and 3:1 contrast on --surface-1.               */
+  --series-1: #C9832F;   /* gold   */
+  --series-2: #29997E;   /* teal   */
+  --series-3: #4E8FE8;   /* blue   */
+  --series-4: #D5628F;   /* pink   */
+  --series-5: #9080EC;   /* violet */
+  --series-6: #D2544B;   /* red    */
+
+  /* Named roles so charts are written against meaning, not slot numbers. */
+  --chart-revenue:  var(--series-3);
+  --chart-expense:  var(--series-1);
+  --chart-grid:     #1F1F25;
+  --chart-axis:     #2B2B33;
+
+  /* Single-hue ordinal ramp for expense composition. */
+  --ramp-1: #F0C88A;
+  --ramp-2: #E0A96A;
+  --ramp-3: #C9832F;
+  --ramp-4: #A66A22;
+  --ramp-5: #7E5019;
+
+  /* --- Spacing (4px rhythm) ------------------------------------------ */
+  --s-1:  2px;
+  --s-2:  4px;
+  --s-3:  6px;
+  --s-4:  8px;
+  --s-5:  12px;
+  --s-6:  16px;
+  --s-7:  20px;
+  --s-8:  24px;
+  --s-9:  32px;
+  --s-10: 40px;
+  --s-11: 56px;
+
+  /* --- Radii --------------------------------------------------------- */
+  --r-sm:   4px;
+  --r-md:   6px;
+  --r-lg:   9px;
+  --r-xl:   14px;
+  --r-pill: 999px;
+
+  /* --- Type ----------------------------------------------------------
+     One sans throughout; a mono reserved for registration plates and
+     reference numbers, where character-by-character reading matters.   */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+
+  --t-display:   34px;   /* the one hero figure per view */
+  --t-title:     22px;   /* page title                   */
+  --t-section:   15px;   /* section heading              */
+  --t-subhead:   14px;   /* record / card title          */
+  --t-body:      14px;
+  --t-meta:      13px;
+  --t-micro:     12px;   /* smallest permitted size      */
+  --t-eyebrow:   11px;   /* uppercase, tracked, labels   */
+
+  --lh-tight: 1.15;
+  --lh-snug:  1.35;
+  --lh-body:  1.55;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     680;
+
+  /* --- Controls ------------------------------------------------------- */
+  --h-control-sm: 30px;
+  --h-control:    36px;
+  --h-control-lg: 44px;
+  --h-input:      38px;
+  --h-row:        52px;
+  --h-row-dense:  44px;
+
+  --icon-sm: 14px;
+  --icon:    16px;
+  --icon-lg: 20px;
+
+  /* --- Shell ---------------------------------------------------------- */
+  --nav-w:       236px;
+  --topbar-h:    56px;
+  --bottomnav-h: 58px;
+  --page-max:    1440px;
+  --gutter:      16px;
+
+  /* --- Motion ---------------------------------------------------------
+     Short and few. Interaction feedback only; nothing decorative moves. */
+  --ease:      cubic-bezier(0.2, 0, 0.13, 1);
+  --dur-fast:  110ms;
+  --dur:       170ms;
+
+  /* --- Elevation ------------------------------------------------------
+     Used only where something genuinely floats above the page.          */
+  --shadow-pop:   0 12px 32px -8px rgba(0, 0, 0, 0.72);
+  --shadow-modal: 0 24px 64px -12px rgba(0, 0, 0, 0.8);
+
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+@media (min-width: 1024px) {
+  :root { --gutter: 28px; }
+}
+
+@media (min-width: 1440px) {
+  :root { --gutter: 40px; }
+}
+
+/* Phones get a slightly tighter type scale — same hierarchy, less bulk.
+   Nothing drops below 12px at any width. */
+@media (max-width: 767px) {
+  :root {
+    --t-display: 28px;
+    --t-title:   19px;
+    --t-section: 14px;
+    --h-row:     48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+}
