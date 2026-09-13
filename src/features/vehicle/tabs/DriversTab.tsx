@@ -55,7 +55,6 @@ export function DriversTab({ vehicle, records, range, today }: TabProps) {
       <Section
         id="v-driver"
         title="Assigned driver"
-        description="One driver holds a vehicle at a time. Assigning someone new releases the current driver."
         actions={
           <Button size="sm" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'driver', vehicleId: vehicle.id })}>
             {assigned.length > 0 ? 'Add another driver' : 'Assign a driver'}
@@ -81,7 +80,7 @@ export function DriversTab({ vehicle, records, range, today }: TabProps) {
                 db.driverPayments.filter((p) => p.driverId === driver.id),
                 driver.salary, driver.joiningDate, today,
               )
-              const licenceDays = daysBetween(today, driver.licenseExpiry)
+              const licenceDays = driver.licenseExpiry ? daysBetween(today, driver.licenseExpiry) : null
               const driverTrips = records.trips.filter((t) => t.driverId === driver.id && t.status === 'completed')
               return (
                 <Link key={driver.id} to={`/fleet/drivers/${driver.id}`} className="registry-row">
@@ -95,36 +94,38 @@ export function DriversTab({ vehicle, records, range, today }: TabProps) {
                         <span className="mono">{driver.licenseNumber}</span>
                       </span>
                       <span className="row row-3" style={{ marginTop: 2 }}>
-                        {licenceDays < 0
-                          ? <Badge tone="negative" dot>Licence expired</Badge>
-                          : licenceDays <= 45
-                            ? <Badge tone="warning" dot>Licence expires in {licenceDays} days</Badge>
-                            : <Badge tone="positive" dot>Licence valid to {formatDate(driver.licenseExpiry)}</Badge>}
+                        {licenceDays == null
+                          ? <Badge>Licence expiry not recorded</Badge>
+                          : licenceDays < 0
+                            ? <Badge tone="negative" dot>Licence expired</Badge>
+                            : licenceDays <= 45
+                              ? <Badge tone="warning" dot>Licence expires in {licenceDays} days</Badge>
+                              : <Badge tone="positive" dot>Licence valid to {formatDate(driver.licenseExpiry!)}</Badge>}
                       </span>
                     </span>
                   </div>
                   <div className="registry-metrics">
-                    <span className="metric-inline">
-                      <span className="metric-inline-label">Trips in period</span>
-                      <span className="metric-inline-value">{fmtNumber(driverTrips.length)}</span>
+                    <span className="registry-metric">
+                      <span className="registry-metric-label">Trips in period</span>
+                      <span className="registry-metric-value">{fmtNumber(driverTrips.length)}</span>
                     </span>
-                    <span className="metric-inline">
-                      <span className="metric-inline-label">Monthly salary</span>
-                      <span className="metric-inline-value"><Money value={driver.salary} /></span>
+                    <span className="registry-metric">
+                      <span className="registry-metric-label">Monthly salary</span>
+                      <span className="registry-metric-value"><Money value={driver.salary} /></span>
                     </span>
-                    <span className="metric-inline">
-                      <span className="metric-inline-label">Total paid</span>
-                      <span className="metric-inline-value"><Money value={account.totalPaid} /></span>
+                    <span className="registry-metric">
+                      <span className="registry-metric-label">Total paid</span>
+                      <span className="registry-metric-value"><Money value={account.totalPaid} /></span>
                     </span>
-                    <span className="metric-inline">
-                      <span className="metric-inline-label">Pending</span>
-                      <span className="metric-inline-value">
+                    <span className="registry-metric">
+                      <span className="registry-metric-label">Pending</span>
+                      <span className="registry-metric-value">
                         {account.pending > 0
                           ? <Money value={account.pending} className="t-warning" />
                           : <span className="t-muted">Settled</span>}
                       </span>
                     </span>
-                    <span className="metric-inline" style={{ alignItems: 'flex-end' }}>
+                    <span className="registry-metric" style={{ alignItems: 'flex-end' }}>
                       <ChevronRightIcon size={16} />
                     </span>
                   </div>
@@ -138,7 +139,6 @@ export function DriversTab({ vehicle, records, range, today }: TabProps) {
       <Section
         id="v-driver-payments"
         title="Driver payments in this period"
-        description="These count as driver costs on this vehicle's financials."
         actions={
           drivers.length > 0 && (
             <Button size="sm" icon={<WalletIcon size={14} />} onClick={() => openForm({ kind: 'driver-payment', driverId: assigned[0]?.id })}>

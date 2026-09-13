@@ -9,7 +9,9 @@
  * Dates are ISO `YYYY-MM-DD` strings — the business works in days, not instants.
  */
 
-export type VehicleType = 'tipper' | 'trailer' | 'container' | 'tanker' | 'pickup'
+export type VehicleType =
+  | '6-wheeler' | '10-wheeler' | '12-wheeler' | '14-wheeler' | '16-wheeler' | '18-wheeler'
+  | 'tipper' | 'trailer' | 'container' | 'tanker' | 'pickup'
 export type FuelType = 'diesel' | 'petrol' | 'cng' | 'electric'
 export type VehicleStatus = 'active' | 'on-trip' | 'maintenance' | 'idle' | 'retired'
 
@@ -18,11 +20,13 @@ export interface Vehicle {
   registrationNumber: string
   name: string
   type: VehicleType
-  manufacturer: string
-  model: string
-  manufacturingYear: number
+  manufacturer?: string
+  model?: string
+  manufacturingYear?: number
   fuelType: FuelType
+  /** 0 when the tank size has not been recorded. */
   tankCapacity: number
+  /** 0 when no reading has been taken yet. */
   odometer: number
   status: VehicleStatus
   insuranceExpiry?: string
@@ -38,7 +42,8 @@ export interface Driver {
   name: string
   phone: string
   licenseNumber: string
-  licenseExpiry: string
+  /** Optional: plenty of offices hold the licence without noting its expiry. */
+  licenseExpiry?: string
   joiningDate: string
   assignedVehicleId: string | null
   salary: number
@@ -52,6 +57,7 @@ export type TripStatus = 'completed' | 'in-transit' | 'cancelled'
 export interface Trip {
   id: string
   date: string
+  /** May be blank — not every trip is given a number. */
   reference: string
   vehicleId: string
   driverId: string | null
@@ -209,6 +215,8 @@ export interface LedgerLine {
 /* ------------------------------------------------------------------ */
 
 export const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
+  '6-wheeler': '6-Wheeler', '10-wheeler': '10-Wheeler', '12-wheeler': '12-Wheeler',
+  '14-wheeler': '14-Wheeler', '16-wheeler': '16-Wheeler', '18-wheeler': '18-Wheeler',
   tipper: 'Tipper', trailer: 'Trailer', container: 'Container',
   tanker: 'Tanker', pickup: 'Pickup',
 }

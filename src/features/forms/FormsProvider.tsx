@@ -10,6 +10,7 @@ import {
   createContext, useCallback, useContext, useMemo, useState,
   type ReactNode,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import { VehicleForm } from './VehicleForm'
 import { DriverForm } from './DriverForm'
 import { TripForm } from './TripForm'
@@ -37,10 +38,31 @@ interface FormsApi {
 
 const FormsContext = createContext<FormsApi | null>(null)
 
+/** `/fleet/vehicles/<id>/...` — the vehicle the user is currently looking at. */
+function useRouteVehicleId(): string | undefined {
+  const { pathname } = useLocation()
+  return useMemo(() => pathname.match(/^\/fleet\/vehicles\/([^/]+)/)?.[1], [pathname])
+}
+
 export function FormsProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<FormRequest | null>(null)
+  const routeVehicleId = useRouteVehicleId()
 
-  const openForm = useCallback((next: FormRequest) => setRequest(next), [])
+  /**
+   * A quick action opened while a vehicle is on screen belongs to that
+   * vehicle, wherever it was clicked from. Without this the global "Log trip"
+   * in the sidebar quietly defaults to the first truck in the fleet while the
+   * user is looking at a different one — the same shape of mistake the form is
+   * meant to prevent.
+   */
+  const openForm = useCallback((next: FormRequest) => {
+    if (next.kind !== 'driver-payment' && next.kind !== 'vehicle'
+        && next.vehicleId === undefined && !next.edit && routeVehicleId) {
+      setRequest({ ...next, vehicleId: routeVehicleId })
+      return
+    }
+    setRequest(next)
+  }, [routeVehicleId])
   const closeForm = useCallback(() => setRequest(null), [])
 
   const api = useMemo<FormsApi>(() => ({ openForm, closeForm }), [openForm, closeForm])

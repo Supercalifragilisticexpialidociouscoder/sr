@@ -14,10 +14,9 @@ import {
 import type {
   Database, Driver, DriverPayment, Expense, FuelEntry, Maintenance, Trip, Vehicle,
 } from './types'
-import { createSeedDatabase, EMPTY_DATABASE } from './seed'
-import { todayISO } from './format'
+import { createInitialDatabase, EMPTY_DATABASE } from './initial'
 
-const STORAGE_KEY = 'sre.fleet.v1'
+const STORAGE_KEY = 'sre.fleet.v2'
 
 export function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID().slice(0, 8)
@@ -160,9 +159,9 @@ interface StoreValue {
   error: string | null
   db: Database
   dispatch: React.Dispatch<Action>
-  /** Wipes stored records and re-seeds the demo fleet. */
-  resetDemoData: () => void
-  /** Clears everything, for seeing the product's empty states. */
+  /** Restores the imported starting records, discarding later edits. */
+  resetToImport: () => void
+  /** Removes every record, to start from nothing. */
   clearAll: () => void
 }
 
@@ -198,7 +197,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (cancelled) return
       try {
         const stored = readStored()
-        const db = stored ?? createSeedDatabase(todayISO())
+        const db = stored ?? createInitialDatabase()
         hydrated.current = true
         dispatch({ type: 'hydrated', db })
       } catch (err) {
@@ -221,8 +220,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [state.db, state.status])
 
-  const resetDemoData = useCallback(() => {
-    dispatch({ type: 'db/replace', db: createSeedDatabase(todayISO()) })
+  const resetToImport = useCallback(() => {
+    dispatch({ type: 'db/replace', db: createInitialDatabase() })
   }, [])
 
   const clearAll = useCallback(() => {
@@ -230,8 +229,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<StoreValue>(
-    () => ({ status: state.status, error: state.error, db: state.db, dispatch, resetDemoData, clearAll }),
-    [state.status, state.error, state.db, resetDemoData, clearAll],
+    () => ({ status: state.status, error: state.error, db: state.db, dispatch, resetToImport, clearAll }),
+    [state.status, state.error, state.db, resetToImport, clearAll],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button, IconButton } from '../../../ui/Button'
-import { EmptyState, Money, Section, Stat, Stats } from '../../../ui/primitives'
+import { EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
 import { DataTable, type Column } from '../../../ui/DataTable'
 import { useConfirm } from '../../../ui/Confirm'
 import { useToast } from '../../../ui/Toast'
@@ -108,7 +108,6 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
       <Section
         id="v-fuel"
         title="Fuel"
-        description="Diesel is recorded here only. These entries are the vehicle's diesel expenditure — they are never entered again as an expense."
         actions={
           <Button size="sm" variant="primary" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'fuel', vehicleId: vehicle.id })}>
             Add fuel
@@ -128,10 +127,10 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
           />
         ) : (
           <>
-            <Stats cols={5} colsMd={3} colsSm={2}>
-              <Stat label="Diesel spend" value={<Money value={summary.fuelCost} />} sub={`${rows.length} fills`} />
-              <Stat label="Litres" value={<span className="num">{fmtNumber(summary.litres, 1)} L</span>} />
-              <Stat
+            <Figures cols={3} className="panel panel-pad">
+              <Figure label="Diesel spend" value={<Money value={summary.fuelCost} />} sub={`${rows.length} fills`} />
+              <Figure label="Litres" value={<span className="num">{fmtNumber(summary.litres, 1)} L</span>} />
+              <Figure
                 label="Mileage"
                 value={
                   summary.mileage != null
@@ -140,9 +139,9 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
                 }
                 sub={summary.mileage == null ? 'Needs two fills' : 'Tank to tank'}
               />
-              <Stat label="Diesel per km" value={<Ratio value={summary.fuelCostPerKm} />} />
-              <Stat label="Diesel per trip" value={<Ratio value={summary.fuelCostPerTrip} />} />
-            </Stats>
+              <Figure label="Diesel per km" value={<Ratio value={summary.fuelCostPerKm} />} />
+              <Figure label="Diesel per trip" value={<Ratio value={summary.fuelCostPerTrip} />} />
+            </Figures>
             <DataTable
               rows={rows}
               columns={columns}

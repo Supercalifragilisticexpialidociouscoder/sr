@@ -7,7 +7,7 @@
 
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../ui/Button'
-import { Badge, EmptyState, Money, PageHeader, Section, Stat, Stats } from '../../ui/primitives'
+import { Badge, EmptyState, Figure, Figures, Money, PageHeader, Readout, Section } from '../../ui/primitives'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { useForms } from '../forms/FormsProvider'
 import { useToday } from '../shared'
@@ -17,7 +17,8 @@ import { presetRange } from '../../data/calc'
 import { date as formatDate, daysBetween, initials, number as fmtNumber } from '../../data/format'
 import { PlusIcon, UsersIcon } from '../../ui/icons'
 
-function LicenceCell({ expiry, today }: { expiry: string; today: string }) {
+function LicenceCell({ expiry, today }: { expiry?: string; today: string }) {
+  if (!expiry) return <span className="t-muted">Not recorded</span>
   const days = daysBetween(today, expiry)
   if (days < 0) return <Badge tone="negative" dot>Expired {formatDate(expiry)}</Badge>
   if (days <= 45) return <Badge tone="warning" dot>{days} days left</Badge>
@@ -36,7 +37,8 @@ export function DriversPage() {
 
   const totalPending = rows.reduce((a, r) => a + Math.max(0, r.account.pending), 0)
   const totalPaid = rows.reduce((a, r) => a + r.account.totalPaid, 0)
-  const expiring = rows.filter((r) => daysBetween(today, r.driver.licenseExpiry) <= 45).length
+  const payroll = db.drivers.reduce((a, d) => a + d.salary, 0)
+  const expiring = rows.filter((r) => r.driver.licenseExpiry && daysBetween(today, r.driver.licenseExpiry) <= 45).length
 
   const columns: Column<DriverRow>[] = [
     {
@@ -107,10 +109,18 @@ export function DriversPage() {
       <PageHeader
         title="Drivers"
         back={{ to: '/fleet', label: 'Fleet' }}
-        subtitle={
-          db.drivers.length === 0
-            ? 'No drivers on record'
-            : `${db.drivers.length} on record${expiring > 0 ? ` · ${expiring} licence ${expiring === 1 ? 'renewal' : 'renewals'} due` : ''}`
+        meta={
+          <>
+            <span>{db.drivers.length} on record</span>
+            {expiring > 0 && (
+              <>
+                <span className="registry-meta-sep">·</span>
+                <span className="t-warning">
+                  {expiring} licence {expiring === 1 ? 'renewal' : 'renewals'} due
+                </span>
+              </>
+            )}
+          </>
         }
         actions={
           <>
@@ -137,26 +147,28 @@ export function DriversPage() {
         />
       ) : (
         <>
-          <Stats cols={3} colsMd={3} colsSm={2}>
-            <Stat label="Paid to drivers, all time" value={<Money value={totalPaid} />} />
-            <Stat
-              label="Currently pending"
-              value={<Money value={totalPending} />}
-              tone={totalPending > 0 ? 'negative' : 'none'}
-              sub="Earned salary less everything paid out"
-            />
-            <Stat
-              label="Licences needing renewal"
-              value={<span className="num">{expiring}</span>}
-              sub="Expired or within 45 days"
-            />
-          </Stats>
-
-          <Section
-            id="driver-list"
-            title="Driver register"
-            description="Select a driver to see their full payment history."
+          <Readout
+            label="Pending to drivers"
+            value={<Money value={totalPending} display />}
+            tone={totalPending > 0 ? 'negative' : 'none'}
+            note={
+              totalPending > 0
+                ? 'Salary earned, less salary paid and advances drawn'
+                : 'Every driver is settled up to the last completed month'
+            }
           >
+            <Figures cols={2}>
+              <Figure label="Paid to date" value={<Money value={totalPaid} />} />
+              <Figure label="Drivers" value={String(db.drivers.length)} />
+              <Figure label="Monthly payroll" value={<Money value={payroll} />} />
+              <Figure
+                label="Licence renewals"
+                value={expiring > 0 ? String(expiring) : 'None due'}
+              />
+            </Figures>
+          </Readout>
+
+          <Section id="driver-list" title="Driver register" count={rows.length}>
             <DataTable
               rows={rows}
               columns={columns}

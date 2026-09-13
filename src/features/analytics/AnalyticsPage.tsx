@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  EmptyState, Money, PageHeader, Section, Stat, Stats,
+  EmptyState, Figure, Figures, Money, PageHeader, Readout, Section,
 } from '../../ui/primitives'
 import { RangeFilter, useRangeState } from '../../ui/RangeFilter'
 import {
@@ -23,7 +23,7 @@ import {
   buildSeries, chooseBucket, inRange, safeDiv, summarise,
 } from '../../data/calc'
 import {
-  km as formatKm, money, moneyCompact, number as fmtNumber, percent, tonnes,
+  km as formatKm, marginNote, money, moneyCompact, number as fmtNumber, percent, tonnes,
 } from '../../data/format'
 import { CATEGORY_LABEL, type ExpenseCategory } from '../../data/types'
 import { ChartIcon, ChevronDownIcon } from '../../ui/icons'
@@ -155,7 +155,7 @@ export function AnalyticsPage() {
   if (db.vehicles.length === 0) {
     return (
       <div className="page stack stack-8">
-        <PageHeader title="Analytics" subtitle="Business performance across the fleet" />
+        <PageHeader title="Analytics" />
         <EmptyState
           icon={<ChartIcon size={20} />}
           title="No data to analyse yet"
@@ -174,7 +174,7 @@ export function AnalyticsPage() {
     <div className="page stack stack-9">
       <PageHeader
         title="Analytics"
-        subtitle="Revenue, cost and performance across the whole fleet"
+        meta={<span>Revenue, cost and performance across the whole fleet</span>}
         actions={<RangeFilter state={rangeState} />}
       />
 
@@ -186,40 +186,33 @@ export function AnalyticsPage() {
         />
       ) : (
         <>
-          <Section
-            id="a-headline"
-            title="Headline"
-            description="The whole business over the selected period."
-          >
-            <Stats cols={4} colsMd={2} colsSm={2}>
-              <Stat
-                label="Net profit"
-                hero
-                value={<Money value={summary.netProfit} polarity="auto" />}
-                tone={summary.netProfit < 0 ? 'negative' : summary.netProfit > 0 ? 'positive' : 'none'}
-                sub={summary.margin != null ? `${percent(summary.margin, 1)} margin` : undefined}
-              />
-              <Stat label="Total revenue" value={<Money value={summary.grossIncome} />} sub={`${fmtNumber(summary.trips)} completed trips`} />
-              <Stat label="Total expenses" value={<Money value={summary.expenses} />} />
-              <Stat
-                label="Diesel"
-                value={<Money value={summary.fuelCost} />}
-                sub={summary.expenses > 0 ? `${percent(summary.fuelCost / summary.expenses, 1)} of expenses` : undefined}
-              />
-            </Stats>
-
-            <Stats cols={4} colsMd={2} colsSm={2}>
-              <Stat label="Distance" value={<span className="num">{formatKm(summary.kilometres)}</span>} />
-              <Stat label="Tonnage" value={<span className="num">{tonnes(summary.tonnage)}</span>} />
-              <Stat label="Revenue per km" value={<Ratio value={summary.revenuePerKm} />} />
-              <Stat label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
-            </Stats>
+          <Section id="a-headline" title="Headline">
+            <Readout
+              label="Net profit"
+              value={<Money value={summary.netProfit} polarity="auto" display />}
+              tone={summary.netProfit < 0 ? 'negative' : summary.netProfit > 0 ? 'positive' : 'none'}
+              note={[marginNote(summary.netProfit, summary.grossIncome, summary.expenses), `${fmtNumber(summary.trips)} completed ${summary.trips === 1 ? 'trip' : 'trips'}`].filter(Boolean).join(' · ')}
+            >
+              <Figures cols={2}>
+                <Figure label="Total revenue" value={<Money value={summary.grossIncome} />} />
+                <Figure label="Distance" value={formatKm(summary.kilometres)} />
+                <Figure label="Total expenses" value={<Money value={summary.expenses} />} />
+                <Figure label="Tonnage" value={tonnes(summary.tonnage)} />
+                <Figure
+                  label="Diesel"
+                  value={<Money value={summary.fuelCost} />}
+                  sub={summary.expenses > 0 ? percent(summary.fuelCost / summary.expenses, 0) : undefined}
+                />
+                <Figure label="Revenue per km" value={<Ratio value={summary.revenuePerKm} />} />
+                <Figure label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
+                <Figure label="Profit per trip" value={<Ratio value={summary.profitPerTrip} tone="auto" />} />
+              </Figures>
+            </Readout>
           </Section>
 
           <Section
             id="a-revenue"
             title="Revenue against expenses"
-            description="Whether cost is keeping pace with the work coming in."
           >
             <div className="panel panel-pad stack stack-5">
               <Legend
@@ -257,7 +250,6 @@ export function AnalyticsPage() {
           <Section
             id="a-profit"
             title="Profit over time"
-            description="Bars above the line made money; bars below it lost money."
           >
             <div className="panel panel-pad stack stack-5">
               <DivergingColumns
@@ -286,7 +278,6 @@ export function AnalyticsPage() {
           <Section
             id="a-vehicles"
             title="Vehicle performance"
-            description="Which vehicles are carrying the business, and which are not."
           >
             <div className="chart-grid chart-grid-2">
               <div className="panel">
@@ -326,7 +317,6 @@ export function AnalyticsPage() {
           <Section
             id="a-costs"
             title="Where the money goes"
-            description="Every expense category across the fleet, largest first."
           >
             <div className="panel panel-pad">
               <BarList items={categoryBreakdown} />
@@ -336,7 +326,6 @@ export function AnalyticsPage() {
           <Section
             id="a-volume"
             title="Work done"
-            description="Trip volume and tonnage handled, shown separately so neither scale distorts the other."
           >
             <div className="chart-grid chart-grid-2">
               <div className="panel">
@@ -369,20 +358,14 @@ export function AnalyticsPage() {
           <Section
             id="a-fuel"
             title="Diesel"
-            description="The largest controllable cost in the business."
           >
             <div className="panel panel-pad stack stack-6">
-              <Stats cols={4} colsMd={2} colsSm={2}>
-                <Stat label="Diesel spend" value={<Money value={summary.fuelCost} />} />
-                <Stat label="Litres" value={<span className="num">{fmtNumber(summary.litres, 0)} L</span>} />
-                <Stat label="Diesel per km" value={<Ratio value={summary.fuelCostPerKm} />} />
-                <Stat
-                  label="Average rate paid"
-                  value={
-                    <Ratio value={safeDiv(summary.fuelCost, summary.litres)} suffix=" / L" />
-                  }
-                />
-              </Stats>
+              <Figures cols={2}>
+                <Figure label="Diesel spend" value={<Money value={summary.fuelCost} />} />
+                <Figure label="Litres" value={`${fmtNumber(summary.litres, 0)} L`} />
+                <Figure label="Diesel per km" value={<Ratio value={summary.fuelCostPerKm} />} />
+                <Figure label="Average rate paid" value={<Ratio value={safeDiv(summary.fuelCost, summary.litres)} suffix=" / L" />} />
+              </Figures>
               <MiniColumns
                 data={series}
                 valueKey="diesel"

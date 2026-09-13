@@ -9,7 +9,7 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Button, IconButton } from '../../ui/Button'
 import {
-  Money, PageHeader, Plate, Section, Stat, Stats,
+  Figure, Figures, Money, PageHeader, Plate, Readout, Section,
 } from '../../ui/primitives'
 import { RangeFilter, useRangeState } from '../../ui/RangeFilter'
 import { useConfirm } from '../../ui/Confirm'
@@ -18,8 +18,8 @@ import { useForms } from '../forms/FormsProvider'
 import { Ratio, useToday, VehicleStatusBadge } from '../shared'
 import { useStore } from '../../data/store'
 import { driverOfVehicle, useScopedRecords, useSummary } from '../../data/selectors'
-import { km as formatKm, number as fmtNumber, tonnes } from '../../data/format'
-import { VEHICLE_TYPE_LABEL, FUEL_TYPE_LABEL } from '../../data/types'
+import { km as formatKm, marginNote, number as fmtNumber, tonnes } from '../../data/format'
+import { VEHICLE_TYPE_LABEL } from '../../data/types'
 import { EditIcon, PlusIcon, TrashIcon } from '../../ui/icons'
 import { OverviewTab } from './tabs/OverviewTab'
 import { DriversTab } from './tabs/DriversTab'
@@ -60,6 +60,8 @@ export function VehicleDetailPage() {
 
   const activeTab: TabId = (TABS.find((t) => t.id === tab)?.id ?? 'overview')
   const driver = driverOfVehicle(db, vehicle.id)
+  const spec = [vehicle.manufacturer, vehicle.model, vehicle.manufacturingYear]
+    .filter(Boolean).join(' ')
 
   const counts = {
     trips: records.trips.length,
@@ -93,17 +95,21 @@ export function VehicleDetailPage() {
       <PageHeader
         title={vehicle.name}
         back={{ to: '/fleet', label: 'Fleet' }}
-        subtitle={
-          <span className="row row-4 row-wrap">
+        meta={
+          <>
             <Plate value={vehicle.registrationNumber} large />
             <VehicleStatusBadge status={vehicle.status} />
-            <span className="t-muted">
-              {VEHICLE_TYPE_LABEL[vehicle.type]} · {vehicle.manufacturer} {vehicle.model} · {vehicle.manufacturingYear}
-            </span>
-            <span className="t-muted">
-              {driver ? `Driver: ${driver.name}` : 'No driver assigned'}
-            </span>
-          </span>
+            <span>{VEHICLE_TYPE_LABEL[vehicle.type]}</span>
+            {spec && <><span className="registry-meta-sep">·</span><span>{spec}</span></>}
+            <span className="registry-meta-sep">·</span>
+            <span>{driver ? driver.name : 'No driver assigned'}</span>
+            {vehicle.odometer > 0 && (
+              <>
+                <span className="registry-meta-sep">·</span>
+                <span className="mono">{fmtNumber(vehicle.odometer)} km</span>
+              </>
+            )}
+          </>
         }
         actions={
           <>
@@ -124,27 +130,25 @@ export function VehicleDetailPage() {
         }
       />
 
-      <Section
-        id="vehicle-performance"
-        title="Performance"
-        description={`${VEHICLE_TYPE_LABEL[vehicle.type]} · ${FUEL_TYPE_LABEL[vehicle.fuelType]} · ${fmtNumber(vehicle.odometer)} km on the clock`}
-        actions={<RangeFilter state={rangeState} compact />}
-      >
-        <Stats cols={4} colsMd={3} colsSm={2}>
-          <Stat label="Trips" value={<span className="num">{fmtNumber(summary.trips)}</span>}
-            sub={summary.inTransitTrips > 0 ? `${summary.inTransitTrips} in transit` : undefined} />
-          <Stat label="Distance" value={<span className="num">{formatKm(summary.kilometres)}</span>} />
-          <Stat label="Tonnage" value={<span className="num">{tonnes(summary.tonnage)}</span>} />
-          <Stat label="Gross income" value={<Money value={summary.grossIncome} />} />
-          <Stat label="Total expenses" value={<Money value={summary.expenses} />} />
-          <Stat
-            label="Net profit"
-            value={<Money value={summary.netProfit} polarity="auto" />}
-            sub={summary.margin != null ? `${(summary.margin * 100).toFixed(1)}% margin` : undefined}
-          />
-          <Stat label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
-          <Stat label="Cost per tonne" value={<Ratio value={summary.costPerTon} />} />
-        </Stats>
+      <Section id="vehicle-performance" title="Performance" actions={<RangeFilter state={rangeState} compact />}>
+        <Readout
+          label="Net profit"
+          value={<Money value={summary.netProfit} polarity="auto" display />}
+          tone={summary.netProfit < 0 ? 'negative' : summary.netProfit > 0 ? 'positive' : 'none'}
+          note={[marginNote(summary.netProfit, summary.grossIncome, summary.expenses), `${fmtNumber(summary.trips)} completed ${summary.trips === 1 ? 'trip' : 'trips'}`].filter(Boolean).join(' · ')}
+        >
+          <Figures cols={2}>
+            <Figure label="Gross income" value={<Money value={summary.grossIncome} />} />
+            <Figure label="Trips" value={fmtNumber(summary.trips)}
+              sub={summary.inTransitTrips > 0 ? `+${summary.inTransitTrips} running` : undefined} />
+            <Figure label="Total expenses" value={<Money value={summary.expenses} />} />
+            <Figure label="Distance" value={formatKm(summary.kilometres)} />
+            <Figure label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
+            <Figure label="Tonnage" value={tonnes(summary.tonnage)} />
+            <Figure label="Cost per tonne" value={<Ratio value={summary.costPerTon} />} />
+            <Figure label="Diesel" value={<Money value={summary.fuelCost} />} />
+          </Figures>
+        </Readout>
       </Section>
 
       <nav className="tabs" aria-label="Vehicle sections">

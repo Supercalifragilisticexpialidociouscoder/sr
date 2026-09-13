@@ -33,7 +33,7 @@ export function DriverForm({
 
   const initial = useMemo<Values>(() => (edit ? {
     name: edit.name, phone: edit.phone, licenseNumber: edit.licenseNumber,
-    licenseExpiry: edit.licenseExpiry, joiningDate: edit.joiningDate,
+    licenseExpiry: edit.licenseExpiry ?? '', joiningDate: edit.joiningDate,
     assignedVehicleId: edit.assignedVehicleId ?? '', salary: String(edit.salary),
     notes: edit.notes ?? '',
   } : {
@@ -47,7 +47,6 @@ export function DriverForm({
     if (!v.phone.trim()) e.phone = 'Phone number is required'
     else if (v.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter a 10-digit mobile number'
     if (!v.licenseNumber.trim()) e.licenseNumber = 'Licence number is required'
-    if (!v.licenseExpiry) e.licenseExpiry = 'Licence expiry is required'
     if (!v.joiningDate) e.joiningDate = 'Joining date is required'
     else if (v.joiningDate > today) e.joiningDate = 'Joining date cannot be in the future'
     if (v.salary === '') e.salary = 'Monthly salary is required'
@@ -72,7 +71,7 @@ export function DriverForm({
       name: values.name.trim(),
       phone: values.phone.trim(),
       licenseNumber: values.licenseNumber.trim().toUpperCase(),
-      licenseExpiry: values.licenseExpiry,
+      licenseExpiry: values.licenseExpiry || undefined,
       joiningDate: values.joiningDate,
       assignedVehicleId: values.assignedVehicleId || null,
       salary: num(values.salary),
@@ -117,8 +116,8 @@ export function DriverForm({
               autoComplete="off" spellCheck={false} {...field('licenseNumber')}
             />
             <TextField
-              label="Licence expiry" required type="date"
-              hint="The fleet page warns you 45 days before this date."
+              label="Licence expiry" optional type="date"
+              hint="Add it and the fleet page warns you 45 days ahead. Leave blank if you do not track it."
               {...field('licenseExpiry')}
             />
           </div>

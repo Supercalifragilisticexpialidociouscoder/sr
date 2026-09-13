@@ -1,4 +1,4 @@
-/** Small shared display components. Every page composes from these. */
+/** Shared display components. Every page composes from these. */
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -10,10 +10,10 @@ import { ChevronLeftIcon } from './icons'
 /* ---------------------------------------------------------------- */
 
 export function PageHeader({
-  title, subtitle, actions, back,
+  title, meta, actions, back,
 }: {
   title: string
-  subtitle?: ReactNode
+  meta?: ReactNode
   actions?: ReactNode
   back?: { to: string; label: string }
 }) {
@@ -22,24 +22,32 @@ export function PageHeader({
       <div className="page-head-titles">
         {back && (
           <Link to={back.to} className="crumb">
-            <ChevronLeftIcon size={13} />
+            <ChevronLeftIcon size={12} />
             {back.label}
           </Link>
         )}
         <h1 className="t-title">{title}</h1>
-        {subtitle && <div className="t-meta t-secondary">{subtitle}</div>}
+        {meta && <div className="t-micro t-muted row row-4 row-wrap">{meta}</div>}
       </div>
       {actions && <div className="page-head-actions">{actions}</div>}
     </header>
   )
 }
 
+/**
+ * A tracked label, a rule that runs across to the actions, and the actions.
+ *
+ * Deliberately not a bold heading over a paragraph of explanation: the label
+ * names the section and the content speaks for itself. `note` exists for the
+ * few places where an accounting rule genuinely needs stating.
+ */
 export function Section({
-  title, description, actions, children, id,
+  title, count, actions, note, children, id,
 }: {
   title: string
-  description?: ReactNode
+  count?: number | string
   actions?: ReactNode
+  note?: ReactNode
   children: ReactNode
   id?: string
 }) {
@@ -47,12 +55,12 @@ export function Section({
   return (
     <section className="section" aria-labelledby={headingId}>
       <div className="section-head">
-        <div className="section-head-titles">
-          <h2 className="t-section" id={headingId}>{title}</h2>
-          {description && <p className="t-micro t-muted">{description}</p>}
-        </div>
+        <h2 className="section-head-label" id={headingId}>{title}</h2>
+        {count != null && <span className="section-head-count">{count}</span>}
+        <span className="section-rule" aria-hidden="true" />
         {actions && <div className="section-head-actions">{actions}</div>}
       </div>
+      {note && <p className="section-note">{note}</p>}
       {children}
     </section>
   )
@@ -74,66 +82,94 @@ function polarityClass(value: number | null, polarity: Polarity): string {
   return ''
 }
 
-/** Money with optional sign colouring. Renders an em dash when unknown. */
+/**
+ * Money.
+ *
+ * At display size the currency mark is set smaller and quieter than the
+ * figure it qualifies — the number is what is being read.
+ */
 export function Money({
-  value, polarity = 'none', precise = false, className = '',
+  value, polarity = 'none', precise = false, display = false, className = '',
 }: {
   value: number | null | undefined
   polarity?: Polarity
   precise?: boolean
+  display?: boolean
   className?: string
 }) {
   const v = value == null || !Number.isFinite(value) ? null : value
   if (v == null) return <span className={`unavailable ${className}`}>—</span>
+
+  const text = precise ? moneyPrecise(v) : money(v)
+  const cls = ['num', polarityClass(v, polarity), className].filter(Boolean).join(' ')
+
+  if (!display) return <span className={cls}>{text}</span>
+
+  const at = text.indexOf('₹')
   return (
-    <span className={['num', polarityClass(v, polarity), className].filter(Boolean).join(' ')}>
-      {precise ? moneyPrecise(v) : money(v)}
+    <span className={cls}>
+      {text.slice(0, at)}
+      <span className="rupee">₹</span>
+      {text.slice(at + 1)}
     </span>
   )
 }
 
-export function Stats({
-  children, cols = 4, colsMd = 3, colsSm = 2, className = '',
+/**
+ * The readout: one leading figure and the ledger that qualifies it.
+ *
+ * This is what the product uses instead of a row of metric cards. Exactly one
+ * figure per view is allowed to be large; everything else is a ledger line.
+ */
+export function Readout({
+  label, value, note, tone = 'none', children,
 }: {
+  label: string
+  value: ReactNode
+  note?: ReactNode
+  tone?: Polarity
   children: ReactNode
-  cols?: number
-  colsMd?: number
-  colsSm?: number
-  className?: string
 }) {
+  const toneClass = tone === 'positive' ? 't-positive' : tone === 'negative' ? 't-negative' : ''
   return (
-    <div
-      className={`stats ${className}`}
-      style={{
-        ['--stat-cols' as string]: cols,
-        ['--stat-cols-md' as string]: colsMd,
-        ['--stat-cols-sm' as string]: colsSm,
-      }}
-    >
-      {children}
+    <div className="readout">
+      <div className="readout-hero">
+        <span className="t-label">{label}</span>
+        <span className={`readout-hero-value ${toneClass}`}>{value}</span>
+        {note && <span className="readout-hero-note">{note}</span>}
+      </div>
+      <div className="readout-ledger">{children}</div>
     </div>
   )
 }
 
-export function Stat({
-  label, value, sub, tone = 'none', hero = false, icon,
+export function Figures({
+  cols = 1, children, className = '',
+}: {
+  cols?: 1 | 2 | 3 | 4
+  children: ReactNode
+  className?: string
+}) {
+  const colClass = cols === 1 ? '' : `figures-${cols}`
+  return <div className={`figures ${colClass} ${className}`.trim()}>{children}</div>
+}
+
+/** One ledger line: label on the left, figure on the right, hairline between. */
+export function Figure({
+  label, value, sub, total = false,
 }: {
   label: string
   value: ReactNode
   sub?: ReactNode
-  tone?: Polarity
-  hero?: boolean
-  icon?: ReactNode
+  total?: boolean
 }) {
-  const toneClass = tone === 'positive' ? 't-positive' : tone === 'negative' ? 't-negative' : ''
   return (
-    <div className={`stat${hero ? ' stat-hero' : ''}`}>
-      <div className="stat-label">
-        {icon}
-        <span className="truncate">{label}</span>
-      </div>
-      <div className={`stat-value ${toneClass}`}>{value}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
+    <div className={`fline${total ? ' fline-total' : ''}`}>
+      <span className="fline-label truncate">{label}</span>
+      <span className="fline-value">
+        {sub && <span className="fline-sub">{sub}</span>}
+        {value}
+      </span>
     </div>
   )
 }
@@ -148,6 +184,17 @@ export function Plate({ value, large = false }: { value: string; large?: boolean
 
 export function Avatar({ initials, large = false }: { initials: string; large?: boolean }) {
   return <span className={`avatar${large ? ' avatar-lg' : ''}`} aria-hidden="true">{initials}</span>
+}
+
+/** A trip drawn as what it is: a line from one place to another. */
+export function Route({ from, to }: { from: string; to: string }) {
+  return (
+    <span className="route">
+      <span className="route-stop truncate">{from}</span>
+      <span className="route-link" aria-hidden="true" />
+      <span className="route-stop truncate">{to}</span>
+    </span>
+  )
 }
 
 /* ---------------------------------------------------------------- */
@@ -186,8 +233,8 @@ export function EmptyState({
 }) {
   return (
     <div className={`empty${compact ? ' empty-compact' : ''}`}>
-      {icon && <div className="empty-icon">{icon}</div>}
-      <div className="stack stack-3" style={{ alignItems: 'center' }}>
+      {icon && <span className="empty-icon">{icon}</span>}
+      <div className="stack stack-3">
         <p className="empty-title">{title}</p>
         {body && <p className="empty-body">{body}</p>}
       </div>
@@ -210,39 +257,41 @@ export function Skeleton({ width = '100%', height = 14, radius }: {
   )
 }
 
-/** Page-level loading placeholder that mirrors the shape of a real page. */
+/** Mirrors the shape of a real page so nothing jumps when records land. */
 export function PageSkeleton() {
   return (
-    <div className="page stack stack-8" aria-busy="true" aria-live="polite">
+    <div className="page stack stack-9" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading records</span>
       <div className="stack stack-4">
-        <Skeleton width={190} height={24} radius={6} />
-        <Skeleton width={280} height={13} radius={4} />
+        <Skeleton width={150} height={22} radius={4} />
+        <Skeleton width={260} height={12} radius={3} />
       </div>
-      <div className="stats" style={{ ['--stat-cols' as string]: 4 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <div className="stat" key={i}>
-            <Skeleton width={72} height={11} radius={3} />
-            <Skeleton width={110} height={21} radius={5} />
-          </div>
-        ))}
+      <div className="readout">
+        <div className="readout-hero">
+          <Skeleton width={90} height={11} radius={2} />
+          <Skeleton width={210} height={42} radius={6} />
+        </div>
+        <div className="readout-ledger stack stack-5">
+          {[0, 1, 2, 3].map((i) => (
+            <div className="row row-between" key={i} style={{ gap: 16 }}>
+              <Skeleton width={84} height={11} radius={2} />
+              <Skeleton width={70} height={13} radius={2} />
+            </div>
+          ))}
+        </div>
       </div>
       <div className="panel">
-        {[0, 1, 2, 3, 4].map((i) => (
+        {[0, 1, 2].map((i) => (
           <div
             key={i}
             className="row row-5"
-            style={{
-              padding: '16px',
-              borderBottom: i < 4 ? '1px solid var(--border-faint)' : undefined,
-            }}
+            style={{ padding: '20px 24px', borderBottom: i < 2 ? '1px solid var(--border-faint)' : undefined }}
           >
-            <Skeleton width={34} height={34} radius={6} />
             <div className="grow stack stack-3">
-              <Skeleton width="42%" height={13} radius={3} />
-              <Skeleton width="26%" height={11} radius={3} />
+              <Skeleton width="34%" height={14} radius={3} />
+              <Skeleton width="22%" height={11} radius={3} />
             </div>
-            <Skeleton width={84} height={15} radius={4} />
+            <Skeleton width={80} height={14} radius={3} />
           </div>
         ))}
       </div>

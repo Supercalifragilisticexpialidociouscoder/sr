@@ -10,11 +10,15 @@ export function money(value: number | null | undefined): string {
   return `${sign}₹${inr.format(Math.abs(Math.round(value)))}`
 }
 
-/** `₹86.40` — for unit rates where paise matter (cost/km, price/litre). */
+/**
+ * A unit rate. Paise matter at ₹86.40 per km and are noise at ₹15,180 per
+ * trip, so the precision follows the magnitude.
+ */
 export function moneyPrecise(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—'
   const sign = value < 0 ? '−' : ''
-  return `${sign}₹${inr2.format(Math.abs(value))}`
+  const n = Math.abs(value)
+  return `${sign}₹${n >= 1000 ? inr.format(Math.round(n)) : inr2.format(n)}`
 }
 
 /** Compact axis/badge form: `₹4.2L`, `₹12.5k`, `₹1.1Cr`. */
@@ -40,14 +44,17 @@ export function number(value: number | null | undefined, decimals = 0): string {
   }).format(value)
 }
 
-export function km(value: number | null | undefined): string {
-  return value == null || !Number.isFinite(value) ? '—' : `${number(value)} km`
+/** Distance. A tenth matters on one leg; on a yearly total it is noise. */
+export function km(value: number | null | undefined, decimals?: number): string {
+  if (value == null || !Number.isFinite(value)) return '—'
+  const places = decimals ?? (Number.isInteger(value) || Math.abs(value) >= 1000 ? 0 : 1)
+  return `${number(value, places)} km`
 }
 
 /** Tonnage. A half-tonne matters on one load; on a yearly total it is noise. */
 export function tonnes(value: number | null | undefined, decimals?: number): string {
   if (value == null || !Number.isFinite(value)) return '—'
-  const places = decimals ?? (Math.abs(value) >= 100 ? 0 : 1)
+  const places = decimals ?? (Number.isInteger(value) ? 0 : Math.abs(value) >= 100 ? 0 : 2)
   return `${number(value, places)} t`
 }
 
@@ -56,7 +63,24 @@ export function litres(value: number | null | undefined, decimals = 1): string {
 }
 
 export function percent(value: number | null | undefined, decimals = 1): string {
-  return value == null || !Number.isFinite(value) ? '—' : `${number(value * 100, decimals)}%`
+  if (value == null || !Number.isFinite(value)) return '—'
+  const sign = value < 0 ? '−' : ''
+  return `${sign}${number(Math.abs(value) * 100, decimals)}%`
+}
+
+/**
+ * How the bottom line relates to revenue.
+ *
+ * A margin below −100% is arithmetically fine and completely unreadable: at
+ * one logged trip against a full tank of diesel, "−192.7%" tells an owner
+ * nothing. Past that point the same fact is stated the way it would be said
+ * out loud — costs are so many times revenue.
+ */
+export function marginNote(profit: number, revenue: number, expenses: number): string | null {
+  if (revenue <= 0) return expenses > 0 ? 'no revenue recorded against these costs' : null
+  const margin = profit / revenue
+  if (margin >= -1) return `${percent(margin, 1)} of revenue`
+  return `costs are ${number(expenses / revenue, 1)}× revenue`
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -113,9 +137,27 @@ export function addDays(iso: string, days: number): string {
   return toISO(d)
 }
 
-/** Registration plates read best with the state code split off. */
+/**
+ * Groups an Indian registration the way it is printed on the plate:
+ * `TG08V7396` reads as `TG 08 V 7396` — state, RTO district, series, number.
+ * Anything that does not match that shape is left as it was typed.
+ */
 export function plate(reg: string): string {
+  const raw = reg.replace(/[\s-]+/g, '').toUpperCase()
+  const m = /^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$/.exec(raw)
+  if (m) return `${m[1]} ${m[2]} ${m[3]} ${m[4]}`
+  // Bharat-series and defence plates keep their own shape.
   return reg.replace(/\s+/g, ' ').trim().toUpperCase()
+}
+
+/** `6281747305` reads as `62817 47305`; anything already formatted is kept. */
+export function phone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 10) return `${digits.slice(0, 5)} ${digits.slice(5)}`
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`
+  }
+  return value
 }
 
 export function initials(name: string): string {

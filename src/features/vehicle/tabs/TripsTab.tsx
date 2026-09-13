@@ -1,5 +1,5 @@
 import { Button, IconButton } from '../../../ui/Button'
-import { EmptyState, Money, Section, Stat, Stats } from '../../../ui/primitives'
+import { EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
 import { DataTable, type Column } from '../../../ui/DataTable'
 import { useConfirm } from '../../../ui/Confirm'
 import { useToast } from '../../../ui/Toast'
@@ -92,7 +92,6 @@ export function TripsTab({ vehicle, records, summary }: TabProps) {
       <Section
         id="v-trips"
         title="Trips / Workout"
-        description="Freight on every trip is tonnage × rate per tonne, unless it was deliberately overridden."
         actions={
           <Button size="sm" variant="primary" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'trip', vehicleId: vehicle.id })}>
             Log trip
@@ -112,17 +111,17 @@ export function TripsTab({ vehicle, records, summary }: TabProps) {
           />
         ) : (
           <>
-            <Stats cols={5} colsMd={3} colsSm={2}>
-              <Stat
+            <Figures cols={3} className="panel panel-pad">
+              <Figure
                 label="Completed trips"
                 value={<span className="num">{fmtNumber(summary.trips)}</span>}
                 sub={summary.cancelledTrips > 0 ? `${summary.cancelledTrips} cancelled` : undefined}
               />
-              <Stat label="Distance" value={<span className="num">{fmtNumber(summary.kilometres)} km</span>} />
-              <Stat label="Tonnage" value={<span className="num">{fmtNumber(summary.tonnage, 1)} t</span>} />
-              <Stat label="Freight earned" value={<Money value={summary.tripRevenue} />} />
-              <Stat label="Average rate" value={<Ratio value={avgRate} suffix=" / t" />} />
-            </Stats>
+              <Figure label="Distance" value={<span className="num">{fmtNumber(summary.kilometres)} km</span>} />
+              <Figure label="Tonnage" value={<span className="num">{fmtNumber(summary.tonnage, 1)} t</span>} />
+              <Figure label="Freight earned" value={<Money value={summary.tripRevenue} />} />
+              <Figure label="Average rate" value={<Ratio value={avgRate} suffix=" / t" />} />
+            </Figures>
             <DataTable
               rows={trips}
               columns={columns}

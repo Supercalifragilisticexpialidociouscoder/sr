@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button, IconButton } from '../../../ui/Button'
-import { Badge, EmptyState, Money, Section, Stat, Stats } from '../../../ui/primitives'
+import { Badge, EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
 import { DataTable, type Column } from '../../../ui/DataTable'
 import { useConfirm } from '../../../ui/Confirm'
 import { useToast } from '../../../ui/Toast'
@@ -116,7 +116,6 @@ export function MaintenanceTab({ vehicle, records, summary, today }: TabProps) {
       <Section
         id="v-maintenance"
         title="Maintenance"
-        description="Service, oil changes, tyres, punctures, repairs and parts. Each one posts to the expense ledger automatically."
         actions={
           <Button size="sm" variant="primary" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'maintenance', vehicleId: vehicle.id })}>
             Add maintenance
@@ -136,28 +135,27 @@ export function MaintenanceTab({ vehicle, records, summary, today }: TabProps) {
           />
         ) : (
           <>
-            <Stats cols={4} colsMd={2} colsSm={2}>
-              <Stat label="Maintenance spend" value={<Money value={totals.cost} />} sub={`${rows.length} records`} />
-              <Stat
+            <Figures cols={2} className="panel panel-pad">
+              <Figure label="Maintenance spend" value={<Money value={totals.cost} />} sub={`${rows.length} records`} />
+              <Figure
                 label="Per kilometre"
                 value={totals.perKm != null ? <span className="num">₹{totals.perKm.toFixed(2)}</span> : <span className="unavailable">—</span>}
               />
-              <Stat
+              <Figure
                 label="Last service"
                 value={totals.lastService
                   ? <span className="num" style={{ fontSize: 15 }}>{formatDate(totals.lastService.date)}</span>
                   : <span className="unavailable">—</span>}
                 sub={totals.lastService ? `at ${fmtNumber(totals.lastService.odometer)} km` : 'None recorded'}
               />
-              <Stat
+              <Figure
                 label="Next service due"
                 value={service?.nextServiceDue
                   ? <span className="num" style={{ fontSize: 15 }}>{formatDate(service.nextServiceDue)}</span>
                   : <span className="unavailable">—</span>}
                 sub={serviceDays != null ? relativeDays(serviceDays) : 'Not scheduled'}
-                tone={serviceDays != null && serviceDays < 0 ? 'negative' : 'none'}
               />
-            </Stats>
+            </Figures>
             <DataTable
               rows={rows}
               columns={columns}

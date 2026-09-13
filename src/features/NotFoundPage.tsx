@@ -5,7 +5,7 @@ import { TruckIcon } from '../ui/icons'
 export function NotFoundPage() {
   return (
     <div className="page stack stack-8">
-      <PageHeader title="Page not found" subtitle="That address does not match anything in the system." />
+      <PageHeader title="Page not found" meta={<span>That address does not match anything in the system.</span>} />
       <EmptyState
         icon={<TruckIcon size={20} />}
         title="Nothing here"

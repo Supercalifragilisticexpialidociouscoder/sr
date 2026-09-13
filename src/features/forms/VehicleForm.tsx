@@ -53,9 +53,9 @@ export function VehicleForm({
     registrationNumber: edit.registrationNumber,
     name: edit.name,
     type: edit.type,
-    manufacturer: edit.manufacturer,
-    model: edit.model,
-    manufacturingYear: String(edit.manufacturingYear),
+    manufacturer: edit.manufacturer ?? '',
+    model: edit.model ?? '',
+    manufacturingYear: edit.manufacturingYear ? String(edit.manufacturingYear) : '',
     fuelType: edit.fuelType,
     tankCapacity: String(edit.tankCapacity),
     odometer: String(edit.odometer),
@@ -81,12 +81,12 @@ export function VehicleForm({
       e.name = 'Another vehicle already uses this name'
 
     const year = num(v.manufacturingYear)
-    if (!v.manufacturingYear) e.manufacturingYear = 'Manufacturing year is required'
-    else if (year < 1980 || year > thisYear + 1) e.manufacturingYear = `Enter a year between 1980 and ${thisYear + 1}`
+    if (v.manufacturingYear && (year < 1980 || year > thisYear + 1)) {
+      e.manufacturingYear = `Enter a year between 1980 and ${thisYear + 1}`
+    }
 
     if (v.tankCapacity !== '' && num(v.tankCapacity) <= 0) e.tankCapacity = 'Tank capacity must be more than zero'
-    if (v.odometer === '') e.odometer = 'Current odometer is required'
-    else if (num(v.odometer) < 0) e.odometer = 'Odometer cannot be negative'
+    if (v.odometer !== '' && num(v.odometer) < 0) e.odometer = 'Odometer cannot be negative'
 
     return e
   }, [db.vehicles, edit?.id, thisYear])
@@ -102,9 +102,9 @@ export function VehicleForm({
       registrationNumber: values.registrationNumber.trim().toUpperCase(),
       name: values.name.trim(),
       type: values.type as VehicleType,
-      manufacturer: values.manufacturer.trim(),
-      model: values.model.trim(),
-      manufacturingYear: num(values.manufacturingYear),
+      manufacturer: values.manufacturer.trim() || undefined,
+      model: values.model.trim() || undefined,
+      manufacturingYear: values.manufacturingYear ? num(values.manufacturingYear) : undefined,
       fuelType: values.fuelType as FuelType,
       tankCapacity: num(values.tankCapacity),
       odometer: num(values.odometer),
@@ -165,8 +165,8 @@ export function VehicleForm({
             <TextField label="Manufacturer" optional placeholder="Tata Motors" {...field('manufacturer')} />
             <TextField label="Model" optional placeholder="Signa 2823.K" {...field('model')} />
             <TextField
-              label="Manufacturing year" required type="number"
-              inputMode="numeric" min={1980} max={thisYear + 1}
+              label="Manufacturing year" optional type="number"
+              inputMode="numeric" min={1980} max={thisYear + 1} placeholder="2021"
               {...field('manufacturingYear')}
             />
             <SelectField
@@ -187,8 +187,9 @@ export function VehicleForm({
           <legend className="form-section-label" style={{ width: '100%' }}>Operational information</legend>
           <div className="form-grid">
             <TextField
-              label="Current odometer" required type="number" inputMode="numeric"
-              min={0} suffix="km" placeholder="214500"
+              label="Current odometer" optional type="number" inputMode="numeric"
+              min={0} suffix="km" placeholder="40928"
+              hint="Leave blank if you have not taken a reading yet — fuel entries will set it."
               {...field('odometer')}
             />
             <SelectField

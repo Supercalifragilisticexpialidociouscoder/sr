@@ -1,8 +1,9 @@
 # Sri Ram Enterprises — Fleet & Financial Operations
 
-A fleet and financial operations system for a transport business. It replaces the
-notebooks and spreadsheets used to track what each vehicle did, what it earned,
-what it cost, and whether it is actually making money.
+A fleet and financial operations system for a transport business running out of
+Telangana. It replaces the notebooks and spreadsheets used to track what each
+truck did, what it earned, what it cost, and whether it is actually making
+money.
 
 ```
 npm install
@@ -10,25 +11,39 @@ npm run dev        # http://localhost:5173
 npm run build      # typecheck + production bundle
 ```
 
-The app opens with a seeded demo fleet of three vehicles and roughly nine months
-of trips, diesel, expenses, maintenance and driver payments, so it can be judged
-with real data in it. **Clear all records** in the sidebar empties it to start
-real use; the same control restores the demo fleet once the database is empty.
-Records live in `localStorage` on the device.
+The app starts from the operator's own records — three vehicles, three drivers
+and the September entries — imported in `src/data/initial.ts`. **Clear all
+records** in the sidebar empties it; the same control restores the import once
+the database is empty. Records live in `localStorage` on the device.
+
+## The import
+
+Source rows keep their original ids so a later sync can match them. Three
+mapping decisions are worth knowing:
+
+| Source | Here | Why |
+|---|---|---|
+| `expenses` row with category `Puncture` | a **maintenance** record | Punctures belong to the maintenance ledger (see below). It reaches the expense ledger once either way, and this keeps it out of the table where it could be entered twice. |
+| `driver_payments` type `Salary`, note `Advance` | kept as **Salary** | Reinterpreting a money record is not the import's job. It is one click to change on the driver's page. |
+| model year, tank capacity, licence expiry, two odometers | **left unset** | The source did not carry them, so the product reports them as unrecorded rather than inventing a zero. |
+
+Everything the model treats as optional is optional for a reason: real records
+arrive incomplete, and a fleet system that demands a licence expiry before it
+will save a driver is a fleet system nobody uses.
 
 ## Architecture
 
 ```
 src/
-  data/        the entire domain — model, calculations, state, exports
-    types.ts       seven stored entities + the accounting authority
+  data/        the whole domain — model, calculations, state, exports
+    types.ts       seven entities + the accounting authority
     calc.ts        every business formula in the product
     selectors.ts   derived views (never stored)
     store.tsx      one reducer, one source of truth
     alerts.ts      operational warnings
     reports.ts     report tables + CSV serialisation
-    seed.ts        deterministic demo data
-    format.ts      ₹, Indian digit grouping, dates
+    initial.ts     the imported records
+    format.ts      ₹, Indian digit grouping, plates, dates
   ui/          the design system — controls, dialogs, tables, charts
   shell/       app shell and the three navigation treatments
   features/    pages, composed from ui/ and data/
@@ -37,29 +52,26 @@ src/
 
 ### One source of truth
 
-Every screen reads from one reducer through the selectors in `selectors.ts`.
-Nothing keeps a private copy of a number, so logging a trip updates the vehicle,
-the fleet registry, analytics and the reports in the same render. The fleet
-totals and the analytics headline call the same function, and an end-to-end test
-asserts they agree.
+Every screen reads one reducer through the selectors. Nothing keeps a private
+copy of a number, so logging a trip updates the vehicle, the fleet registry,
+analytics and the reports in the same render. The fleet total and the analytics
+headline call the same function, and an end-to-end test asserts they agree.
 
 ### Every formula in one place
 
-`calc.ts` owns freight, fuel cost, revenue, expenses, profit and all the ratios.
+`calc.ts` owns freight, fuel cost, revenue, expenses, profit and the ratios.
 Two rules hold throughout:
 
 - **Division is always guarded.** A ratio with a zero or missing denominator
-  returns `null`, which the UI renders as an explicit dash rather than `0`,
-  `NaN` or `∞`. A vehicle with costs but no completed kilometres shows "—" for
-  cost per km, because that figure is genuinely unknowable.
+  returns `null` and renders as a dash, never `0`, `NaN` or `∞`. Mileage needs
+  two fills at different odometers before it means anything, so until then it
+  says so.
 - **Only completed trips are financial.** In-transit work has not been earned
-  and cancelled work never will be, so neither contributes to revenue,
-  kilometres or tonnage.
+  and cancelled work never will be.
 
 ### Double counting is structurally impossible
 
-This was the central modelling decision. Each expense category has exactly one
-owning record type (`CATEGORY_SOURCE` in `types.ts`):
+Each expense category has exactly one owning record type (`CATEGORY_SOURCE`):
 
 | Category | Entered as |
 |---|---|
@@ -69,13 +81,11 @@ owning record type (`CATEGORY_SOURCE` in `types.ts`):
 | FASTag, toll, insurance, permit, other | a direct expense |
 
 `buildLedger()` normalises all four sources into one ledger, and the Add Expense
-form offers only the categories it owns — the others are routed to their own
-form. A diesel fill therefore exists once and reaches the ledger once. The
-vehicle's Expenses tab still shows everything in one list, tagged with where it
-came from. FASTag recharges represent tag-paid tolls and the `toll` category is
-for cash tolls, so those cannot overlap either.
+form offers only the categories it owns, routing the rest to their own form. A
+diesel fill exists once and reaches the ledger once. The vehicle's Expenses tab
+still shows everything in one list, tagged with where it came from.
 
-A driver payment is allocated to the driver's assigned vehicle; a payment to an
+Driver payments allocate to the driver's assigned vehicle; a payment to an
 unassigned driver belongs to no truck but is still a real cost, so fleet totals
 are computed business-wide and the difference is shown rather than hidden.
 
@@ -84,22 +94,31 @@ are computed business-wide and the difference is shown rather than hidden.
 Pending pay is `salary earned − salary paid − advances`. Batta is an allowance
 paid in full per trip, not an advance, so it does not reduce what is owed.
 Accrual starts when payment records begin rather than at the joining date —
-otherwise adding a driver who joined four years ago would invent several lakh of
-liability on their first day.
+otherwise a driver who joined in 2025 but whose payments start in 2026 would
+appear to be owed twenty months of back pay that was settled long ago.
 
-## Design system
+## Design
 
-Tokens in `styles/tokens.css` define every colour, space, radius, control height
-and type step; no component hard-codes a value. Near-black planes, hairline
-borders, gold for primary actions, green and red reserved for financial
-polarity.
+The product is an instrument for running trucks, so it is built like one rather
+than like a dashboard.
 
-Charts are hand-built SVG so the marks obey the same tokens as everything else.
-The palette was validated with a colourblindness checker rather than chosen by
-eye: the revenue/expense pair is blue↔gold (CVD ΔE 25.7), green/red is reserved
-for profit polarity where the zero baseline carries the sign positionally, and
-expense categories use a single-hue ramp with the row label carrying identity.
-Every chart has a hover tooltip and a "show the numbers" table.
+- **IBM Plex Sans and Plex Mono**, self-hosted (80 KB, no runtime request).
+  Every identifier and every figure — plates, licence numbers, odometers, money
+  — is set in mono, because those are read character by character or compared
+  down a column.
+- **One leading figure per view.** The readout puts the bottom line at 46px
+  beside a ledger of the numbers that qualify it. There is no grid of metric
+  cards anywhere in the product.
+- **Sections are a tracked label, a rule, and the actions.** No bold heading
+  over a paragraph explaining what the section is; the content does that.
+- **Each vehicle has a colour**, fixed by its place in the fleet, worn by its
+  spine in the sidebar, its row in the registry and its bar in every chart.
+
+Charts are hand-built SVG. The palette was validated with a colourblindness
+checker rather than chosen by eye: revenue vs expenses is blue↔gold (CVD ΔE
+25.7), green and red are reserved for profit polarity where the zero baseline
+carries the sign positionally, and ranked bars use one colour because their row
+labels carry identity. Every chart has a tooltip and a table view.
 
 ## Responsive
 
@@ -107,11 +126,12 @@ Three deliberate layouts, not one squeezed down:
 
 | Width | Navigation | Records |
 |---|---|---|
-| ≥ 1024px | persistent sidebar, quick actions always visible | tables |
+| ≥ 1024px | sidebar with the live fleet and the quick actions | tables |
 | 768–1023 | top bar with inline sections | tables |
 | < 768px | bottom tab bar; dialogs become bottom sheets | record cards |
 
 Tables become cards rather than losing columns, and a card wraps long text to
-two lines rather than truncating it. Wide report previews scroll inside their
-own container. Verified with an automated pass at 390 / 768 / 1440 that checks
-page overflow, gutter breaches and minimum text size on every page.
+two lines rather than truncating it. Verified with automated passes at 390 /
+768 / 1440 for page overflow, gutter breaches and minimum text size; end to end
+for data flowing from a logged trip to the CSV export; and for focus trapping,
+focus restoration and control labelling.

@@ -95,26 +95,24 @@ const SEVERITY_ICON: Record<Severity, typeof AlertTriangleIcon> = {
   info: InfoIcon,
 }
 
-export function AlertRow({ alert }: { alert: Alert }) {
-  const Icon = SEVERITY_ICON[alert.severity]
-  return (
-    <li className={`alert alert-${alert.severity}`}>
-      <span className="alert-icon"><Icon size={16} /></span>
-      <div className="grow stack stack-2">
-        <span className="alert-title">{alert.title}</span>
-        <span className="alert-detail">{alert.detail}</span>
-      </div>
-      <Link to={alert.href} className="btn btn-secondary btn-sm alert-action">
-        {alert.actionLabel}
-      </Link>
-    </li>
-  )
-}
-
 export function AlertList({ alerts }: { alerts: Alert[] }) {
   return (
-    <ul className="stack stack-4">
-      {alerts.map((a) => <AlertRow key={a.id} alert={a} />)}
+    <ul className="alerts">
+      {alerts.map((alert) => {
+        const Icon = SEVERITY_ICON[alert.severity]
+        return (
+          <li className={`alert alert-${alert.severity}`} key={alert.id}>
+            <span className="alert-icon"><Icon size={15} /></span>
+            <span className="stack stack-2" style={{ minWidth: 0 }}>
+              <span className="alert-title">{alert.title}</span>
+              <span className="alert-detail">{alert.detail}</span>
+            </span>
+            <Link to={alert.href} className="btn btn-secondary btn-sm alert-action">
+              {alert.actionLabel}
+            </Link>
+          </li>
+        )
+      })}
     </ul>
   )
 }

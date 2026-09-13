@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Button, IconButton } from '../../ui/Button'
 import {
-  Badge, EmptyState, Money, PageHeader, Plate, Section, Stat, Stats,
+  Badge, EmptyState, Figure, Figures, Money, PageHeader, Plate, Readout, Section,
 } from '../../ui/primitives'
 import { DataTable, type Column } from '../../ui/DataTable'
 import { useConfirm } from '../../ui/Confirm'
@@ -19,7 +19,7 @@ import { useToday } from '../shared'
 import { useStore } from '../../data/store'
 import { driverLedger, inRange, presetRange } from '../../data/calc'
 import {
-  date as formatDate, daysBetween, number as fmtNumber, relativeDays,
+  date as formatDate, daysBetween, number as fmtNumber, phone, relativeDays,
 } from '../../data/format'
 import {
   DRIVER_PAYMENT_LABEL, type DriverPayment, type DriverPaymentType, type Trip,
@@ -66,13 +66,15 @@ export function DriverDetailPage() {
   if (!driver || !account) return <Navigate to="/fleet/drivers" replace />
 
   const vehicle = db.vehicles.find((v) => v.id === driver.assignedVehicleId)
-  const licenceDays = daysBetween(today, driver.licenseExpiry)
+  const licenceDays = driver.licenseExpiry ? daysBetween(today, driver.licenseExpiry) : null
 
   const thisMonth = presetRange('month', today)
   const tripsThisMonth = trips.filter((t) => inRange(t.date, thisMonth))
   const freightEarned = trips.reduce((a, t) => a + t.freightAmount, 0)
 
-  const licenceAlert: Alert | null = licenceDays < 0
+  const licenceAlert: Alert | null = licenceDays == null
+    ? null
+    : licenceDays < 0
     ? {
         id: 'lic', severity: 'critical',
         title: 'Licence has expired',
@@ -175,12 +177,13 @@ export function DriverDetailPage() {
       <PageHeader
         title={driver.name}
         back={{ to: '/fleet/drivers', label: 'Drivers' }}
-        subtitle={
-          <span className="row row-4 row-wrap">
-            <span className="row row-3"><PhoneIcon size={13} />{driver.phone}</span>
-            <span className="row row-3"><IdCardIcon size={13} /><span className="mono">{driver.licenseNumber}</span></span>
-            {vehicle && <Plate value={vehicle.registrationNumber} />}
-          </span>
+        meta={
+          <>
+            <span className="row row-3"><PhoneIcon size={12} /><span className="mono">{phone(driver.phone)}</span></span>
+            <span className="registry-meta-sep">·</span>
+            <span className="row row-3"><IdCardIcon size={12} /><span className="mono">{driver.licenseNumber}</span></span>
+            {vehicle && <><span className="registry-meta-sep">·</span><Plate value={vehicle.registrationNumber} /></>}
+          </>
         }
         actions={
           <>
@@ -213,89 +216,86 @@ export function DriverDetailPage() {
         </ul>
       )}
 
-      <Stats cols={4} colsMd={3} colsSm={2}>
-        <Stat
-          label="Pending amount"
-          hero
-          value={<Money value={Math.max(0, account.pending)} />}
-          tone={account.pending > 0 ? 'negative' : 'none'}
-          sub={
-            account.pending > 0
-              ? 'Earned salary less salary paid and advances'
-              : account.pending < 0
-                ? `₹${Math.abs(account.pending).toLocaleString('en-IN')} drawn in advance`
-                : 'Fully settled'
-          }
-        />
-        <Stat label="Total paid to date" value={<Money value={account.totalPaid} />} sub={`${payments.length} payments`} />
-        <Stat label="Monthly salary" value={<Money value={driver.salary} />} sub={`${account.monthsOfService} months of service`} />
-        <Stat
-          label="Trips driven"
-          value={<span className="num">{fmtNumber(trips.length)}</span>}
-          sub={`${tripsThisMonth.length} this month`}
-        />
-      </Stats>
+      <Readout
+        label={account.pending >= 0 ? 'Pending amount' : 'Advanced to driver'}
+        value={<Money value={Math.abs(account.pending)} display />}
+        tone={account.pending > 0 ? 'negative' : 'none'}
+        note={
+          account.pending > 0
+            ? 'Salary earned, less salary paid and advances drawn'
+            : account.pending < 0
+              ? 'Drawn ahead of salary earned'
+              : 'Settled up to the last completed month'
+        }
+      >
+        <Figures cols={2}>
+          <Figure label="Paid to date" value={<Money value={account.totalPaid} />} sub={`${payments.length} ${payments.length === 1 ? 'payment' : 'payments'}`} />
+          <Figure label="Trips driven" value={fmtNumber(trips.length)} />
+          <Figure label="Trips this month" value={fmtNumber(tripsThisMonth.length)} />
+          <Figure label="Freight brought in" value={<Money value={freightEarned} />} />
+          <Figure label="Monthly salary" value={<Money value={driver.salary} />} />
+        </Figures>
+      </Readout>
 
       <Section
         id="account"
         title="Payment account"
-        description="Every rupee that has gone to this driver, and what is still outstanding."
       >
         <div className="statement">
           <div className="panel panel-pad">
-            <p className="t-eyebrow" style={{ marginBottom: 12 }}>Paid out</p>
-            <div className="ledger">
-              <div className="ledger-line">
-                <span className="ledger-label">Salary paid</span>
-                <span className="ledger-value"><Money value={account.salaryPaid} /></span>
+            <p className="t-label" style={{ marginBottom: 4 }}>Paid out</p>
+            <div className="figures">
+              <div className="fline">
+                <span className="fline-label">Salary paid</span>
+                <span className="fline-value"><Money value={account.salaryPaid} /></span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Advances given</span>
-                <span className="ledger-value"><Money value={account.advances} /></span>
+              <div className="fline">
+                <span className="fline-label">Advances given</span>
+                <span className="fline-value"><Money value={account.advances} /></span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Trip payments (batta)</span>
-                <span className="ledger-value"><Money value={account.tripPayments} /></span>
+              <div className="fline">
+                <span className="fline-label">Trip payments (batta)</span>
+                <span className="fline-value"><Money value={account.tripPayments} /></span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Other payments</span>
-                <span className="ledger-value"><Money value={account.otherPayments} /></span>
+              <div className="fline">
+                <span className="fline-label">Other payments</span>
+                <span className="fline-value"><Money value={account.otherPayments} /></span>
               </div>
-              <div className="ledger-line ledger-total">
-                <span className="ledger-label">Total paid</span>
-                <span className="ledger-value"><Money value={account.totalPaid} /></span>
+              <div className="fline fline-total">
+                <span className="fline-label">Total paid</span>
+                <span className="fline-value"><Money value={account.totalPaid} /></span>
               </div>
             </div>
           </div>
 
           <div className="panel panel-pad">
-            <p className="t-eyebrow" style={{ marginBottom: 12 }}>Position</p>
-            <div className="ledger">
-              <div className="ledger-line">
-                <span className="ledger-label">Joined</span>
-                <span className="ledger-value">{formatDate(driver.joiningDate)}</span>
+            <p className="t-label" style={{ marginBottom: 4 }}>Position</p>
+            <div className="figures">
+              <div className="fline">
+                <span className="fline-label">Joined</span>
+                <span className="fline-value">{formatDate(driver.joiningDate)}</span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Salary accrued from</span>
-                <span className="ledger-value">{formatDate(account.accrualFrom)}</span>
+              <div className="fline">
+                <span className="fline-label">Salary accrued from</span>
+                <span className="fline-value">{formatDate(account.accrualFrom)}</span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Salary earned ({account.monthsOfService} months)</span>
-                <span className="ledger-value"><Money value={account.salaryEarned} /></span>
+              <div className="fline">
+                <span className="fline-label">Salary earned · {account.monthsOfService} {account.monthsOfService === 1 ? 'month' : 'months'}</span>
+                <span className="fline-value"><Money value={account.salaryEarned} /></span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Less: salary paid</span>
-                <span className="ledger-value">−<Money value={account.salaryPaid} /></span>
+              <div className="fline">
+                <span className="fline-label">Less: salary paid</span>
+                <span className="fline-value">−<Money value={account.salaryPaid} /></span>
               </div>
-              <div className="ledger-line">
-                <span className="ledger-label">Less: advances drawn</span>
-                <span className="ledger-value">−<Money value={account.advances} /></span>
+              <div className="fline">
+                <span className="fline-label">Less: advances drawn</span>
+                <span className="fline-value">−<Money value={account.advances} /></span>
               </div>
-              <div className="ledger-line ledger-total">
-                <span className="ledger-label">
+              <div className="fline fline-total">
+                <span className="fline-label">
                   {account.pending >= 0 ? 'Pending to driver' : 'Advanced to driver'}
                 </span>
-                <span className="ledger-value">
+                <span className="fline-value">
                   <Money
                     value={Math.abs(account.pending)}
                     className={account.pending > 0 ? 't-warning' : ''}
@@ -317,7 +317,6 @@ export function DriverDetailPage() {
       <Section
         id="payments"
         title="Payment history"
-        description={`${payments.length} ${payments.length === 1 ? 'record' : 'records'}`}
         actions={
           <Button size="sm" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'driver-payment', driverId: driver.id })}>
             Record payment
@@ -350,7 +349,6 @@ export function DriverDetailPage() {
       <Section
         id="driver-trips"
         title="Trips driven"
-        description={trips.length > 0 ? `${fmtNumber(trips.length)} completed · ₹${freightEarned.toLocaleString('en-IN')} of freight brought in` : undefined}
       >
         {trips.length === 0 ? (
           <EmptyState compact title="No completed trips yet" body={`Trips assigned to ${driver.name} will be listed here.`} />

@@ -29,7 +29,6 @@ export function OverviewTab({ vehicle, summary, today }: TabProps) {
       <Section
         id="v-quick"
         title="Log against this vehicle"
-        description="Each of these opens already set to this vehicle."
       >
         <div className="row row-4 row-wrap">
           <Button variant="primary" icon={<PlusIcon size={15} />} onClick={() => openForm({ kind: 'trip', vehicleId: vehicle.id })}>
@@ -49,65 +48,65 @@ export function OverviewTab({ vehicle, summary, today }: TabProps) {
 
       <div className="statement">
         <Section id="v-specs" title="Specifications">
-          <div className="ledger">
-            <div className="ledger-line">
-              <span className="ledger-label">Vehicle type</span>
-              <span className="ledger-value">{VEHICLE_TYPE_LABEL[vehicle.type]}</span>
+          <div className="figures">
+            <div className="fline">
+              <span className="fline-label">Vehicle type</span>
+              <span className="fline-value">{VEHICLE_TYPE_LABEL[vehicle.type]}</span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Manufacturer and model</span>
-              <span className="ledger-value">{vehicle.manufacturer || '—'} {vehicle.model}</span>
+            <div className="fline">
+              <span className="fline-label">Manufacturer and model</span>
+              <span className="fline-value">{vehicle.manufacturer || '—'} {vehicle.model}</span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Manufacturing year</span>
+            <div className="fline">
+              <span className="fline-label">Manufacturing year</span>
               <span className="ledger-value num">{vehicle.manufacturingYear}</span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Fuel type</span>
-              <span className="ledger-value">{FUEL_TYPE_LABEL[vehicle.fuelType]}</span>
+            <div className="fline">
+              <span className="fline-label">Fuel type</span>
+              <span className="fline-value">{FUEL_TYPE_LABEL[vehicle.fuelType]}</span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Tank capacity</span>
+            <div className="fline">
+              <span className="fline-label">Tank capacity</span>
               <span className="ledger-value num">
                 {vehicle.tankCapacity > 0 ? `${fmtNumber(vehicle.tankCapacity)} L` : '—'}
               </span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Current odometer</span>
+            <div className="fline">
+              <span className="fline-label">Current odometer</span>
               <span className="ledger-value num">{fmtNumber(vehicle.odometer)} km</span>
             </div>
           </div>
         </Section>
 
         <Section id="v-docs" title="Documents and service">
-          <div className="ledger">
-            <div className="ledger-line">
-              <span className="ledger-label">Insurance</span>
-              <span className="ledger-value"><ExpiryBadge expiry={vehicle.insuranceExpiry} today={today} /></span>
+          <div className="figures">
+            <div className="fline">
+              <span className="fline-label">Insurance</span>
+              <span className="fline-value"><ExpiryBadge expiry={vehicle.insuranceExpiry} today={today} /></span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Permit</span>
-              <span className="ledger-value"><ExpiryBadge expiry={vehicle.permitExpiry} today={today} /></span>
+            <div className="fline">
+              <span className="fline-label">Permit</span>
+              <span className="fline-value"><ExpiryBadge expiry={vehicle.permitExpiry} today={today} /></span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Fitness certificate</span>
-              <span className="ledger-value"><ExpiryBadge expiry={vehicle.fitnessExpiry} today={today} /></span>
+            <div className="fline">
+              <span className="fline-label">Fitness certificate</span>
+              <span className="fline-value"><ExpiryBadge expiry={vehicle.fitnessExpiry} today={today} /></span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Next service due</span>
-              <span className="ledger-value"><ExpiryBadge expiry={service?.nextServiceDue} today={today} /></span>
+            <div className="fline">
+              <span className="fline-label">Next service due</span>
+              <span className="fline-value"><ExpiryBadge expiry={service?.nextServiceDue} today={today} /></span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Mileage</span>
-              <span className="ledger-value">
+            <div className="fline">
+              <span className="fline-label">Mileage</span>
+              <span className="fline-value">
                 {summary.mileage != null
                   ? <span className="num">{fmtNumber(summary.mileage, 2)} km/L</span>
                   : <span className="unavailable" title="At least two fuel fills are needed to work out mileage">—</span>}
               </span>
             </div>
-            <div className="ledger-line">
-              <span className="ledger-label">Diesel cost per km</span>
-              <span className="ledger-value"><Ratio value={summary.fuelCostPerKm} /></span>
+            <div className="fline">
+              <span className="fline-label">Diesel cost per km</span>
+              <span className="fline-value"><Ratio value={summary.fuelCostPerKm} /></span>
             </div>
           </div>
         </Section>
@@ -116,7 +115,6 @@ export function OverviewTab({ vehicle, summary, today }: TabProps) {
       <Section
         id="v-activity"
         title="Recent activity"
-        description="Trips, diesel, expenses, maintenance and driver payments for this vehicle, newest first."
       >
         {activity.length === 0 ? (
           <EmptyState

@@ -19,7 +19,8 @@ import { useToast } from '../ui/Toast'
 import { useStore } from '../data/store'
 import { useForms } from '../features/forms/FormsProvider'
 import { useAlerts } from '../data/alerts'
-import { todayISO } from '../data/format'
+import { plate, todayISO } from '../data/format'
+import { vehicleColor } from '../features/shared'
 import {
   ChartIcon, FileIcon, FuelIcon, PlusIcon, ReceiptIcon, RouteIcon,
   TrashIcon, TruckIcon, UsersIcon, WrenchIcon,
@@ -66,7 +67,7 @@ export function AppShell() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const actions = useQuickActions()
   const location = useLocation()
-  const { db, resetDemoData, clearAll } = useStore()
+  const { db, resetToImport, clearAll } = useStore()
   const confirm = useConfirm()
   const toast = useToast()
   const alerts = useAlerts(todayISO())
@@ -85,22 +86,19 @@ export function AppShell() {
     action.run()
   }, [])
 
-  /* The app opens on demo records so it can be judged with data in it. Both
-     directions have to be available: clear them out to start real use, or put
-     them back after experimenting. */
   const isEmpty = db.vehicles.length === 0 && db.drivers.length === 0
 
-  const restoreDemo = useCallback(async () => {
+  const restoreImport = useCallback(async () => {
     const ok = await confirm({
-      title: 'Restore the demo fleet?',
-      body: 'This replaces everything currently recorded with the three demo vehicles and their history. Anything you have entered yourself will be lost.',
-      confirmLabel: 'Restore demo data',
+      title: 'Restore the imported records?',
+      body: 'This puts the fleet back to the three vehicles, three drivers and the September records that were imported, discarding anything entered since.',
+      confirmLabel: 'Restore records',
       destructive: true,
     })
     if (!ok) return
-    resetDemoData()
-    toast.success('Demo fleet restored')
-  }, [confirm, resetDemoData, toast])
+    resetToImport()
+    toast.success('Imported records restored')
+  }, [confirm, resetToImport, toast])
 
   const clearEverything = useCallback(async () => {
     const ok = await confirm({
@@ -149,16 +147,36 @@ export function AppShell() {
             </NavLink>
           ))}
 
-          <p className="nav-group-label">Quick actions</p>
+          {db.vehicles.length > 0 && (
+            <>
+              <p className="nav-group-label">Vehicles</p>
+              {db.vehicles.map((vehicle, index) => (
+                <NavLink
+                  key={vehicle.id}
+                  to={`/fleet/vehicles/${vehicle.id}`}
+                  style={{ ['--vehicle-color' as string]: vehicleColor(index) }}
+                  className={({ isActive }) => `nav-vehicle${isActive ? ' nav-vehicle-on' : ''}`}
+                >
+                  <span className="nav-vehicle-spine" aria-hidden="true" />
+                  <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                    <span className="nav-vehicle-name truncate">{vehicle.name}</span>
+                    <span className="nav-vehicle-plate truncate">{plate(vehicle.registrationNumber)}</span>
+                  </span>
+                </NavLink>
+              ))}
+            </>
+          )}
+
+          <p className="nav-group-label">Record</p>
           {actions.map((action) => (
             <button
               key={action.label}
               type="button"
               className={action.primary ? 'btn btn-primary' : 'nav-item'}
-              style={action.primary ? { width: '100%', justifyContent: 'flex-start', marginBottom: 4 } : undefined}
+              style={action.primary ? { width: '100%', justifyContent: 'flex-start', marginBottom: 5 } : undefined}
               onClick={() => runAction(action)}
             >
-              {action.primary ? <PlusIcon size={15} /> : <action.Icon size={17} />}
+              {action.primary ? <PlusIcon size={15} /> : <action.Icon size={16} />}
               <span className="truncate">{action.label}</span>
             </button>
           ))}
@@ -172,9 +190,9 @@ export function AppShell() {
             type="button"
             className="btn btn-ghost btn-sm"
             style={{ justifyContent: 'flex-start', paddingInline: 0 }}
-            onClick={isEmpty ? restoreDemo : clearEverything}
+            onClick={isEmpty ? restoreImport : clearEverything}
           >
-            {isEmpty ? 'Restore demo data' : 'Clear all records'}
+            {isEmpty ? 'Restore imported records' : 'Clear all records'}
           </button>
         </div>
       </aside>
@@ -256,10 +274,10 @@ export function AppShell() {
           <button
             type="button"
             className="quick-item"
-            onClick={() => { setSheetOpen(false); if (isEmpty) restoreDemo(); else clearEverything() }}
+            onClick={() => { setSheetOpen(false); if (isEmpty) restoreImport(); else clearEverything() }}
           >
             <TrashIcon size={18} />
-            {isEmpty ? 'Restore demo data' : 'Clear all records'}
+            {isEmpty ? 'Restore imported records' : 'Clear all records'}
           </button>
         </div>
       </Modal>

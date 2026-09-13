@@ -69,14 +69,10 @@ export function ReportsPage() {
     <div className="page stack stack-9">
       <PageHeader
         title="Reports"
-        subtitle="Export your records as CSV for Excel, Google Sheets or your accountant"
+        meta={<span>CSV exports for Excel, Google Sheets or your accountant</span>}
       />
 
-      <Section
-        id="r-filters"
-        title="Filters"
-        description="Applied to the preview and to the exported file alike."
-      >
+      <Section id="r-filters" title="Filters" note="Applied to the preview and the exported file alike.">
         <div className="filters">
           <RangeFilter state={rangeState} />
           <label className="sr-only" htmlFor="report-vehicle">Vehicle</label>
@@ -94,7 +90,7 @@ export function ReportsPage() {
         </div>
       </Section>
 
-      <Section id="r-picker" title="Choose a report">
+      <Section id="r-picker" title="Report" count={REPORTS.length}>
         <div className="report-grid">
           {REPORTS.map((r) => (
             <button
@@ -119,7 +115,7 @@ export function ReportsPage() {
       <Section
         id="r-preview"
         title={table.title}
-        description={table.description}
+        count={table.description}
         actions={
           <Button
             variant="primary"

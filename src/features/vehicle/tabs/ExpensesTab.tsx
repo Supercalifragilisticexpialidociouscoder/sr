@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, IconButton } from '../../../ui/Button'
-import { Badge, EmptyState, Money, Section, Stat, Stats } from '../../../ui/primitives'
+import { Badge, EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
 import { DataTable, type Column } from '../../../ui/DataTable'
 import { BarList } from '../../../ui/Charts'
 import { useConfirm } from '../../../ui/Confirm'
@@ -123,7 +123,6 @@ export function ExpensesTab({ vehicle, records, summary }: TabProps) {
       <Section
         id="v-expense-summary"
         title="Where the money went"
-        description="Every cost carried by this vehicle, wherever it was entered — counted exactly once."
         actions={
           <Button size="sm" variant="primary" icon={<PlusIcon size={14} />} onClick={() => openForm({ kind: 'expense', vehicleId: vehicle.id })}>
             Add expense
@@ -143,12 +142,12 @@ export function ExpensesTab({ vehicle, records, summary }: TabProps) {
           />
         ) : (
           <>
-            <Stats cols={4} colsMd={2} colsSm={2}>
-              <Stat label="Total expenses" value={<Money value={summary.expenses} />} sub={`${lines.length} ledger lines`} />
-              <Stat label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
-              <Stat label="Cost per tonne" value={<Ratio value={summary.costPerTon} />} />
-              <Stat label="Cost per trip" value={<Ratio value={perTrip} />} />
-            </Stats>
+            <Figures cols={2} className="panel panel-pad">
+              <Figure label="Total expenses" value={<Money value={summary.expenses} />} sub={`${lines.length} ledger lines`} />
+              <Figure label="Cost per km" value={<Ratio value={summary.costPerKm} />} />
+              <Figure label="Cost per tonne" value={<Ratio value={summary.costPerTon} />} />
+              <Figure label="Cost per trip" value={<Ratio value={perTrip} />} />
+            </Figures>
             <div className="panel panel-pad">
               <BarList items={breakdown} />
             </div>
@@ -160,7 +159,6 @@ export function ExpensesTab({ vehicle, records, summary }: TabProps) {
         <Section
           id="v-expense-ledger"
           title="Expense ledger"
-          description="Diesel comes from fuel entries, service and tyres from maintenance, salary and batta from driver payments. Edit each where it was recorded."
         >
           <DataTable
             rows={lines}
