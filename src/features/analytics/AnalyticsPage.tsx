@@ -16,7 +16,7 @@ import {
   BarList, DivergingColumns, GroupedColumns, Legend, MiniColumns, SeriesTable,
   type BarListItem,
 } from '../../ui/Charts'
-import { Ratio, useToday } from '../shared'
+import { Ratio, useToday, vehicleColor } from '../shared'
 import { useDb } from '../../data/store'
 import { useFleetRows, useLedger } from '../../data/selectors'
 import {
@@ -27,8 +27,6 @@ import {
 } from '../../data/format'
 import { CATEGORY_LABEL, type ExpenseCategory } from '../../data/types'
 import { ChartIcon, ChevronDownIcon } from '../../ui/icons'
-
-const RAMP = ['var(--ramp-3)', 'var(--ramp-2)', 'var(--ramp-4)', 'var(--ramp-1)', 'var(--ramp-5)']
 
 function TableToggle({ open, onToggle, label }: { open: boolean; onToggle: () => void; label: string }) {
   return (
@@ -93,28 +91,30 @@ export function AnalyticsPage() {
   )
 
   const revenueByVehicle = useMemo<BarListItem[]>(
-    () => [...fleetRows]
-      .sort((a, b) => b.summary.grossIncome - a.summary.grossIncome)
-      .map((r, i) => ({
+    () => fleetRows
+      .map((r, fleetIndex) => ({ r, fleetIndex }))
+      .sort((a, b) => b.r.summary.grossIncome - a.r.summary.grossIncome)
+      .map(({ r, fleetIndex }) => ({
         id: r.vehicle.id,
         label: r.vehicle.name,
         value: r.summary.grossIncome,
         display: money(r.summary.grossIncome),
-        color: RAMP[Math.min(i, RAMP.length - 1)],
+        color: vehicleColor(fleetIndex),
         meta: `${fmtNumber(r.summary.trips)} trips · ${formatKm(r.summary.kilometres)}`,
       })),
     [fleetRows],
   )
 
   const expensesByVehicle = useMemo<BarListItem[]>(
-    () => [...fleetRows]
-      .sort((a, b) => b.summary.expenses - a.summary.expenses)
-      .map((r, i) => ({
+    () => fleetRows
+      .map((r, fleetIndex) => ({ r, fleetIndex }))
+      .sort((a, b) => b.r.summary.expenses - a.r.summary.expenses)
+      .map(({ r, fleetIndex }) => ({
         id: r.vehicle.id,
         label: r.vehicle.name,
         value: r.summary.expenses,
         display: money(r.summary.expenses),
-        color: RAMP[Math.min(i, RAMP.length - 1)],
+        color: vehicleColor(fleetIndex),
         meta: `Diesel ${money(r.summary.byCategory.diesel)} of it`,
       })),
     [fleetRows],
@@ -141,12 +141,11 @@ export function AnalyticsPage() {
     const entries = (Object.entries(summary.byCategory) as [ExpenseCategory, number][])
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
-    return entries.map(([category, amount], i) => ({
+    return entries.map(([category, amount]) => ({
       id: category,
       label: CATEGORY_LABEL[category],
       value: amount,
       display: money(amount),
-      color: RAMP[Math.min(i, RAMP.length - 1)],
       meta: summary.expenses > 0 ? `${percent(amount / summary.expenses, 1)} of expenses` : undefined,
     }))
   }, [summary.byCategory, summary.expenses])

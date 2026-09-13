@@ -1647,11 +1647,14 @@
   font-weight: var(--fw-bold);
 }
 
-/* Two statement columns on desktop, stacked on narrow screens. */
+/* Two statement columns on desktop, stacked on narrow screens. Each panel
+   sizes to its own content — a stretched column leaves dead space under the
+   shorter statement. */
 .statement {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--s-8);
+  align-items: start;
 }
 @media (min-width: 860px) {
   .statement { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-9); }

@@ -22,8 +22,6 @@ const SOURCE_LABEL: Record<LedgerSource, string> = {
   fuel: 'Fuel entry', maintenance: 'Maintenance', driver: 'Driver payment', direct: 'Expense',
 }
 
-const RAMP = ['var(--ramp-3)', 'var(--ramp-2)', 'var(--ramp-4)', 'var(--ramp-1)', 'var(--ramp-5)']
-
 export function ExpensesTab({ vehicle, records, summary }: TabProps) {
   const { db, dispatch } = useStore()
   const confirm = useConfirm()
@@ -33,19 +31,18 @@ export function ExpensesTab({ vehicle, records, summary }: TabProps) {
 
   const lines = records.ledger
 
-  /* Ranked category breakdown. The row label carries identity, so the single
-     gold ramp only reinforces rank — no categorical palette is needed for
-     twelve categories. */
+  /* Ranked category breakdown. Bar length carries the magnitude and the row
+     label carries the identity, so one colour is the honest choice — varying
+     it by rank would repaint the rows whenever the order changed. */
   const breakdown = useMemo(() => {
     const entries = (Object.entries(summary.byCategory) as [ExpenseCategory, number][])
       .filter(([, amount]) => amount > 0)
       .sort((a, b) => b[1] - a[1])
-    return entries.map(([category, amount], i) => ({
+    return entries.map(([category, amount]) => ({
       id: category,
       label: CATEGORY_LABEL[category],
       value: amount,
       display: money(amount),
-      color: RAMP[Math.min(i, RAMP.length - 1)],
       meta: summary.expenses > 0 ? `${percent(amount / summary.expenses, 1)} of total expenses` : undefined,
     }))
   }, [summary.byCategory, summary.expenses])

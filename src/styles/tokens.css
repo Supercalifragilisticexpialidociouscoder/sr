@@ -70,13 +70,6 @@
   --chart-grid:     #1F1F25;
   --chart-axis:     #2B2B33;
 
-  /* Single-hue ordinal ramp for expense composition. */
-  --ramp-1: #F0C88A;
-  --ramp-2: #E0A96A;
-  --ramp-3: #C9832F;
-  --ramp-4: #A66A22;
-  --ramp-5: #7E5019;
-
   /* --- Spacing (4px rhythm) ------------------------------------------ */
   --s-1:  2px;
   --s-2:  4px;

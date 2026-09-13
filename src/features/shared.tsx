@@ -15,6 +15,23 @@ import {
   type TripStatus, type VehicleStatus,
 } from '../data/types'
 
+/**
+ * Chart colours for vehicles.
+ *
+ * Keyed to the vehicle's stable position in the fleet, never to its rank in
+ * whatever is being charted — so re-sorting a chart, or filtering to a shorter
+ * date range, never repaints the survivors. Past six vehicles the colour stops
+ * carrying identity and the row label does the work alone.
+ */
+const SERIES = [
+  'var(--series-1)', 'var(--series-2)', 'var(--series-3)',
+  'var(--series-4)', 'var(--series-5)', 'var(--series-6)',
+]
+
+export function vehicleColor(index: number): string {
+  return index >= 0 && index < SERIES.length ? SERIES[index] : 'var(--series-1)'
+}
+
 /** `today` is read once per mount so a long-lived page cannot drift mid-session. */
 export function useToday(): string {
   return useMemo(() => todayISO(), [])
