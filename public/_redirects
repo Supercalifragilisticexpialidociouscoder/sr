@@ -1,0 +1,5 @@
+# Cloudflare Pages serves files by path, so a deep link like
+# /fleet/vehicles/v-1788194114527/fuel would 404 on refresh or when shared.
+# Hand every unmatched path to the app and let the router resolve it.
+# Real files (/assets/*, /fonts/*) are served before this rule is consulted.
+/*    /index.html   200
