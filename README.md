@@ -16,6 +16,44 @@ and the September entries — imported in `src/data/initial.ts`. **Clear all
 records** in the sidebar empties it; the same control restores the import once
 the database is empty. Records live in `localStorage` on the device.
 
+## Deploying to Cloudflare Pages
+
+It is a static build with no server, no API and no third-party requests, so
+Pages serves it as-is.
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Node version | read from `.nvmrc` (22) |
+| Root directory | `/` |
+
+Two files in `public/` do the deployment work and are copied into `dist/`:
+
+- **`_redirects`** — `/* /index.html 200`. Without it every route except `/`
+  returns 404 on refresh or when someone opens a shared link, because Pages
+  looks for a file at that path. Real files under `/assets` and `/fonts` are
+  matched before the rule is consulted.
+- **`_headers`** — fingerprinted assets and the fonts are cached for a year and
+  `index.html` is not cached at all, so a deploy takes effect immediately
+  instead of leaving people on the old bundle. It also sets `nosniff`, a
+  referrer policy, and a content-security policy that allows nothing but this
+  origin — the app loads no scripts, fonts or styles from anywhere else.
+
+**Production branch.** Pages tracks the repository's default branch. This work
+is on `claude/youthful-brown-g75t8e`, so either merge it into `main` first, or
+set that branch as the production branch under *Settings → Builds & deployments*.
+
+### One thing to decide before the team uses it
+
+Records are kept in `localStorage`, which belongs to one browser on one device.
+Once this is on a URL, the office laptop and a driver's phone will each keep
+their own separate copy — nothing syncs between them, and clearing browser data
+loses that copy. That is fine for one person on one machine. For shared use it
+needs a backend; Cloudflare D1 with a Worker would fit this data model closely,
+since the schema is already relational and the calculations already run over
+plain record arrays.
+
 ## The import
 
 Source rows keep their original ids so a later sync can match them. Three
