@@ -5,19 +5,17 @@
  * owner checks first: is the business up, and what is each truck doing.
  */
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, LinkButton } from '../../ui/Button'
-import {
-  Badge, EmptyState, Figure, Figures, Money, PageHeader, Plate, Readout, Section,
-} from '../../ui/primitives'
-import { RangeFilter, useRangeState } from '../../ui/RangeFilter'
+import { Badge, EmptyState, Money, PageHeader, Plate, Section } from '../../ui/primitives'
+import { useRangeState } from '../../ui/RangeFilter'
 import { AlertList, useToday, vehicleColor, VehicleStatusBadge } from '../shared'
 import { useForms } from '../forms/FormsProvider'
 import { useAlerts } from '../../data/alerts'
 import { useDb } from '../../data/store'
-import { useFleetRows, useSummary } from '../../data/selectors'
-import { km as formatKm, marginNote, number as fmtNumber, phone, tonnes } from '../../data/format'
+import { useFleetRows } from '../../data/selectors'
+import { km as formatKm, number as fmtNumber, phone } from '../../data/format'
 import { VEHICLE_TYPE_LABEL } from '../../data/types'
 import { ChevronRightIcon, PlusIcon, TruckIcon, UsersIcon } from '../../ui/icons'
 
@@ -32,17 +30,6 @@ export function FleetPage() {
   const rows = useFleetRows(rangeState.range)
   const alerts = useAlerts(today)
   const [allAlerts, setAllAlerts] = useState(false)
-
-  /* Business-wide, not the sum of the rows below: a cost that belongs to no
-     single vehicle is still a real cost. Analytics reads the same figure. */
-  const totals = useSummary(useMemo(
-    () => ({ vehicleId: null, range: rangeState.range }),
-    [rangeState.range],
-  ))
-  const unallocated = useMemo(
-    () => totals.expenses - rows.reduce((a, r) => a + r.summary.expenses, 0),
-    [totals.expenses, rows],
-  )
 
   const visibleAlerts = allAlerts ? alerts : alerts.slice(0, ALERTS_SHOWN)
   const onRoad = db.vehicles.filter((v) => v.status === 'active' || v.status === 'on-trip').length
@@ -87,34 +74,6 @@ export function FleetPage() {
           </>
         }
       />
-
-      <Section id="position" title="Position" actions={<RangeFilter state={rangeState} compact />}>
-        <Readout
-          label="Net profit"
-          value={<Money value={totals.netProfit} polarity="auto" display />}
-          tone={totals.netProfit < 0 ? 'negative' : totals.netProfit > 0 ? 'positive' : 'none'}
-          note={[marginNote(totals.netProfit, totals.grossIncome, totals.expenses), `${fmtNumber(totals.trips)} completed ${totals.trips === 1 ? 'trip' : 'trips'}`].filter(Boolean).join(' · ')}
-        >
-          <Figures cols={2}>
-            <Figure label="Revenue" value={<Money value={totals.grossIncome} />} />
-            <Figure label="Trips" value={fmtNumber(totals.trips)} />
-            <Figure
-              label="Expenses"
-              value={<Money value={totals.expenses} />}
-              sub={unallocated > 0 ? '*' : undefined}
-            />
-            <Figure label="Distance" value={formatKm(totals.kilometres)} />
-            <Figure label="Diesel" value={<Money value={totals.fuelCost} />} />
-            <Figure label="Tonnage" value={tonnes(totals.tonnage)} />
-          </Figures>
-        </Readout>
-        {unallocated > 0 && (
-          <p className="section-note">
-            * Includes <Money value={unallocated} /> of costs not tied to a single vehicle,
-            so this total is higher than the vehicle rows added together.
-          </p>
-        )}
-      </Section>
 
       {alerts.length > 0 && (
         <Section

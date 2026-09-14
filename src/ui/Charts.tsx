@@ -509,11 +509,13 @@ export interface BarListItem {
  * carry more categories than a categorical palette safely could.
  */
 export function BarList({
-  items, format = moneyCompact, max,
+  items, format = moneyCompact, max, onSelect,
 }: {
   items: BarListItem[]
   format?: (v: number) => string
   max?: number
+  /** Makes each row a button, so a total can be opened into its transactions. */
+  onSelect?: (id: string) => void
 }) {
   const ceiling = max ?? Math.max(1, ...items.map((i) => Math.abs(i.value)))
   if (items.length === 0) return <ChartEmpty height={120} />
@@ -522,15 +524,15 @@ export function BarList({
       {items.map((item) => {
         const pct = Math.min(100, (Math.abs(item.value) / ceiling) * 100)
         const negative = item.value < 0
-        return (
-          <div className="barlist-row" key={item.id}>
-            <div className="barlist-head">
+        const body = (
+          <>
+            <span className="barlist-head">
               <span className="barlist-name truncate">{item.label}</span>
               <span className={`barlist-value ${negative ? 't-negative' : ''}`}>
                 {item.display ?? format(item.value)}
               </span>
-            </div>
-            <div
+            </span>
+            <span
               className="barlist-track"
               role="meter"
               aria-valuenow={Math.round(pct)}
@@ -538,16 +540,30 @@ export function BarList({
               aria-valuemax={100}
               aria-label={`${item.label}: ${item.display ?? format(item.value)}`}
             >
-              <div
+              <span
                 className="barlist-fill"
                 style={{
+                  display: 'block',
                   width: `${Math.max(pct, item.value === 0 ? 0 : 1.5)}%`,
                   background: item.color ?? (negative ? 'var(--negative-mark)' : 'var(--series-1)'),
                 }}
               />
-            </div>
+            </span>
             {item.meta && <span className="t-micro t-muted">{item.meta}</span>}
-          </div>
+          </>
+        )
+        return onSelect ? (
+          <button
+            type="button"
+            className="barlist-row barlist-row-tap"
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            aria-label={`Show the transactions behind ${item.label}`}
+          >
+            {body}
+          </button>
+        ) : (
+          <div className="barlist-row" key={item.id}>{body}</div>
         )
       })}
     </div>

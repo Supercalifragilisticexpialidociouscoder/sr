@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button, IconButton } from '../../../ui/Button'
-import { EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
+import { Badge, EmptyState, Figure, Figures, Money, Section } from '../../../ui/primitives'
 import { DataTable, type Column } from '../../../ui/DataTable'
 import { useConfirm } from '../../../ui/Confirm'
 import { useToast } from '../../../ui/Toast'
@@ -30,15 +30,21 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
   /* Per-fill mileage needs the previous reading, so the list is walked in
      chronological order before being shown newest-first. */
   const rows = useMemo<FuelRow[]>(() => {
-    const ascending = [...records.fuel].sort((a, b) =>
-      a.date === b.date ? a.odometer - b.odometer : a.date < b.date ? -1 : 1)
+    // Only diesel fills carry an odometer walk — AdBlue goes into its own tank
+    // and would put a phantom gap in the mileage.
+    const ascending = [...records.fuel]
+      .filter((f) => f.product !== 'adblue')
+      .sort((a, b) => (a.date === b.date ? a.odometer - b.odometer : a.date < b.date ? -1 : 1))
     let previous: number | null = null
     const withMileage = ascending.map((f) => {
       const distance = previous != null && f.odometer > previous ? f.odometer - previous : null
       previous = f.odometer
       return { ...f, distance, mileage: distance != null ? safeDiv(distance, f.litres) : null }
     })
-    return withMileage.reverse()
+    const adblue = records.fuel
+      .filter((f) => f.product === 'adblue')
+      .map((f) => ({ ...f, distance: null, mileage: null }))
+    return [...withMileage, ...adblue].sort((a, b) => (a.date < b.date ? 1 : -1))
   }, [records.fuel])
 
   const remove = async (entry: FuelEntry) => {
@@ -60,7 +66,12 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
     },
     {
       key: 'station', header: 'Fuel station', mobile: 'title',
-      render: (f) => <span className="td-strong truncate">{f.fuelStation}</span>,
+      render: (f) => (
+        <span className="row row-3" style={{ minWidth: 0 }}>
+          <span className="td-strong truncate">{f.fuelStation || '—'}</span>
+          {f.product === 'adblue' && <Badge tone="info">AdBlue</Badge>}
+        </span>
+      ),
     },
     {
       key: 'litres', header: 'Litres', numeric: true,
@@ -128,8 +139,21 @@ export function FuelTab({ vehicle, records, summary }: TabProps) {
         ) : (
           <>
             <Figures cols={3} className="panel panel-pad">
-              <Figure label="Diesel spend" value={<Money value={summary.fuelCost} />} sub={`${rows.length} fills`} />
+              <Figure label="Diesel spend" value={<Money value={summary.fuelCost} />} />
               <Figure label="Litres" value={<span className="num">{fmtNumber(summary.litres, 1)} L</span>} />
+              <Figure
+                label="Average rate"
+                value={summary.dieselRate != null
+                  ? <span className="num">₹{summary.dieselRate.toFixed(2)} / L</span>
+                  : <span className="unavailable">—</span>}
+              />
+              {summary.adblueCost > 0 && (
+                <Figure
+                  label="AdBlue"
+                  value={<Money value={summary.adblueCost} />}
+                  sub={summary.adblueLitres > 0 ? `${fmtNumber(summary.adblueLitres, 1)} L` : undefined}
+                />
+              )}
               <Figure
                 label="Mileage"
                 value={

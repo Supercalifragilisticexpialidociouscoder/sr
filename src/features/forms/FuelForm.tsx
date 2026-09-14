@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { FormModal } from '../../ui/Modal'
 import {
-  ComputedField, SelectField, TextAreaField, TextField, useFormState, num,
+  ChoiceField, ComputedField, SelectField, TextAreaField, TextField, useFormState, num,
   type Errors,
 } from '../../ui/Field'
 import { useStore, newId } from '../../data/store'
 import { useToast } from '../../ui/Toast'
 import { fuelCost, safeDiv } from '../../data/calc'
 import { money, number as fmtNumber, todayISO } from '../../data/format'
-import { PAYMENT_METHOD_LABEL, type FuelEntry, type PaymentMethod } from '../../data/types'
+import {
+  PAYMENT_METHOD_LABEL,
+  type FuelEntry, type FuelProduct, type PaymentMethod,
+} from '../../data/types'
 
 interface Values {
+  product: string
   date: string
   vehicleId: string
   driverId: string
@@ -37,7 +41,7 @@ export function FuelForm({
   const initial = useMemo<Values>(() => {
     if (edit) {
       return {
-        date: edit.date, vehicleId: edit.vehicleId, driverId: edit.driverId ?? '',
+        product: edit.product, date: edit.date, vehicleId: edit.vehicleId, driverId: edit.driverId ?? '',
         fuelStation: edit.fuelStation, litres: String(edit.litres),
         pricePerLitre: String(edit.pricePerLitre), odometer: String(edit.odometer),
         paymentMethod: edit.paymentMethod, notes: edit.notes ?? '',
@@ -47,7 +51,7 @@ export function FuelForm({
     const vehicle = db.vehicles.find((v) => v.id === vehicleId)
     const driver = db.drivers.find((d) => d.assignedVehicleId === vehicleId)
     return {
-      date: today, vehicleId, driverId: driver?.id ?? '', fuelStation: '',
+      product: 'diesel', date: today, vehicleId, driverId: driver?.id ?? '', fuelStation: '',
       litres: '', pricePerLitre: '', odometer: vehicle ? String(vehicle.odometer) : '',
       paymentMethod: 'card', notes: '',
     }
@@ -107,6 +111,7 @@ export function FuelForm({
     const record: FuelEntry = {
       id: edit?.id ?? newId(),
       date: values.date,
+      product: values.product as FuelProduct,
       vehicleId: values.vehicleId,
       driverId: values.driverId || null,
       fuelStation: values.fuelStation.trim(),
@@ -131,8 +136,8 @@ export function FuelForm({
     }
 
     toast.success(
-      edit ? 'Fuel entry updated' : `${money(total)} of diesel recorded`,
-      `${fmtNumber(record.litres, 1)} L on ${vehicle?.name ?? 'the vehicle'} — counted once, as diesel.`,
+      edit ? 'Fuel entry updated' : `${money(total)} of ${record.product === 'adblue' ? 'AdBlue' : 'diesel'} recorded`,
+      `${fmtNumber(record.litres, 1)} L on ${vehicle?.name ?? 'the vehicle'} — counted once.`,
     )
     onClose()
   }
@@ -142,12 +147,20 @@ export function FuelForm({
       open={open}
       onClose={onClose}
       title={edit ? 'Edit fuel entry' : 'Add fuel'}
-      description="Diesel is recorded here and nowhere else, so the same fill is never counted twice."
+      description="Diesel and AdBlue are recorded here and nowhere else, so the same fill is never counted twice."
       onSubmit={submit}
       submitLabel={edit ? 'Save changes' : 'Add fuel'}
       width={660}
     >
       <div className="stack stack-8">
+        <ChoiceField
+          label="Product" name="fuel-product" required
+          value={values.product}
+          onChange={(v) => set('product', v)}
+          options={[{ value: 'diesel', label: 'Diesel' }, { value: 'adblue', label: 'AdBlue' }]}
+          hint="AdBlue is tracked separately — it is dosed into its own tank and would distort mileage."
+        />
+
         <fieldset className="form-section" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="form-section-label" style={{ width: '100%' }}>Fill details</legend>
           <div className="form-grid">

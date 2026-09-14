@@ -139,7 +139,8 @@ export function buildLedger(db: Database): LedgerLine[] {
       date: f.date,
       vehicleId: f.vehicleId,
       driverId: f.driverId,
-      category: 'diesel',
+      // Diesel and AdBlue share a record but are separate costs to the owner.
+      category: f.product === 'adblue' ? 'adblue' : 'diesel',
       amount: f.totalAmount,
       description: `${f.litres} L @ ₹${f.pricePerLitre}/L · ${f.fuelStation}`,
       paymentMethod: f.paymentMethod,
@@ -207,8 +208,9 @@ export type CategoryTotals = Record<ExpenseCategory, number>
 
 export function emptyCategoryTotals(): CategoryTotals {
   return {
-    diesel: 0, tyres: 0, puncture: 0, service: 0, repairs: 0, fastag: 0,
-    driver: 0, insurance: 0, permit: 0, toll: 0, parts: 0, other: 0,
+    diesel: 0, adblue: 0, fastag: 0, toll: 0, driver: 0, service: 0,
+    tyres: 0, puncture: 0, repairs: 0, parts: 0, insurance: 0,
+    documents: 0, other: 0,
   }
 }
 
@@ -235,12 +237,22 @@ export interface FinancialSummary extends OperationsSummary {
   profitPerKm: number | null
   profitPerTrip: number | null
   margin: number | null
-  /** Fuel */
+  /* Diesel. `litres` counts diesel only — AdBlue is dosed into a separate
+     tank and would wreck any mileage or rate-per-litre figure. */
   litres: number
   fuelCost: number
   mileage: number | null
   fuelCostPerKm: number | null
   fuelCostPerTrip: number | null
+  fuelCostPerTon: number | null
+  dieselRate: number | null
+  /* AdBlue, reported on its own terms. */
+  adblueCost: number
+  adblueLitres: number
+  adblueRate: number | null
+  /* Tolls */
+  fastagCost: number
+  fastagPerKm: number | null
 }
 
 function operationsOf(trips: Trip[]): OperationsSummary {
@@ -278,7 +290,13 @@ export function computeMileage(
 export interface SummaryInput {
   trips: Trip[]
   ledger: LedgerLine[]
-  fuel: { odometer: number; litres: number; date: string; totalAmount: number }[]
+  fuel: {
+    product?: 'diesel' | 'adblue'
+    odometer: number
+    litres: number
+    date: string
+    totalAmount: number
+  }[]
   otherIncome?: number
 }
 
@@ -293,7 +311,10 @@ export function summarise({ trips, ledger, fuel, otherIncome = 0 }: SummaryInput
   const expenses = sum(ledger.map((l) => l.amount))
   const netProfit = grossIncome - expenses
 
-  const litresFilled = sum(fuel.map((f) => f.litres))
+  const diesel = fuel.filter((f) => (f.product ?? 'diesel') === 'diesel')
+  const adblue = fuel.filter((f) => f.product === 'adblue')
+  const litresFilled = sum(diesel.map((f) => f.litres))
+  const adblueLitres = sum(adblue.map((f) => f.litres))
 
   return {
     ...ops,
@@ -312,9 +333,16 @@ export function summarise({ trips, ledger, fuel, otherIncome = 0 }: SummaryInput
     margin: safeDiv(netProfit, grossIncome),
     litres: litresFilled,
     fuelCost: byCategory.diesel,
-    mileage: computeMileage(fuel),
+    mileage: computeMileage(diesel),
     fuelCostPerKm: safeDiv(byCategory.diesel, ops.kilometres),
     fuelCostPerTrip: safeDiv(byCategory.diesel, ops.trips),
+    fuelCostPerTon: safeDiv(byCategory.diesel, ops.tonnage),
+    dieselRate: safeDiv(byCategory.diesel, litresFilled),
+    adblueCost: byCategory.adblue,
+    adblueLitres,
+    adblueRate: safeDiv(byCategory.adblue, adblueLitres),
+    fastagCost: byCategory.fastag,
+    fastagPerKm: safeDiv(byCategory.fastag, ops.kilometres),
   }
 }
 
@@ -332,6 +360,8 @@ export interface SeriesPoint {
   kilometres: number
   tonnage: number
   diesel: number
+  adblue: number
+  fastag: number
 }
 
 export type Bucket = 'day' | 'week' | 'month'
@@ -377,6 +407,7 @@ export function buildSeries(
       point = {
         key, label: bucketLabel(key, bucket), revenue: 0, expenses: 0,
         profit: 0, trips: 0, kilometres: 0, tonnage: 0, diesel: 0,
+        adblue: 0, fastag: 0,
       }
       map.set(key, point)
     }
@@ -395,6 +426,8 @@ export function buildSeries(
     const p = touch(l.date)
     p.expenses += l.amount
     if (l.category === 'diesel') p.diesel += l.amount
+    else if (l.category === 'adblue') p.adblue += l.amount
+    else if (l.category === 'fastag') p.fastag += l.amount
   }
 
   const points = [...map.values()].sort((a, b) => (a.key < b.key ? -1 : 1))

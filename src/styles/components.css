@@ -1091,7 +1091,18 @@
   white-space: nowrap;
 }
 
-.barlist-track { height: 6px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.barlist-row-tap {
+  width: 100%;
+  text-align: left;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease);
+  padding-inline: var(--s-4);
+  margin-inline: calc(var(--s-4) * -1);
+}
+.barlist-row-tap:hover { background: var(--surface-2); }
+
+.barlist-track { display: block; height: 6px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.barlist-head { display: flex; }
 .barlist-fill { height: 100%; border-radius: 2px; transition: width var(--dur) var(--ease); }
 
 .disclosure {
@@ -1310,6 +1321,32 @@
 
 .sidebar-foot { margin-top: auto; padding: var(--s-6) var(--s-5); border-top: 1px solid var(--border); }
 
+.search-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  width: 100%;
+  height: 32px;
+  padding-inline: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+  font-size: var(--t-meta);
+  text-align: left;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.search-trigger:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+.search-kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
 /* --- Top bar (< 1024px) --- */
 .topbar { display: none; }
 
@@ -1415,3 +1452,384 @@
   transition: color var(--dur-fast) var(--ease);
 }
 .crumb:hover { color: var(--text-secondary); }
+
+/* ---------------------------------------------------------------- */
+/* Period bar                                                        */
+/* ---------------------------------------------------------------- */
+
+/* The period governs every figure on the page, so it is the largest
+   control on it — stepping month by month is the motion this business
+   actually makes. */
+.period {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.period-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.period-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.period-step:hover:not(:disabled) { background: var(--surface-3); color: var(--text-primary); }
+.period-step:disabled { opacity: 0.3; }
+
+.period-current {
+  min-width: 168px;
+  height: 30px;
+  padding-inline: var(--s-4);
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--t-subhead);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-tight);
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  border-radius: var(--r-sm);
+}
+.period-current:hover { background: var(--surface-3); }
+.period-current option { background: var(--surface-2); color: var(--text-primary); font-weight: 400; }
+
+@media (max-width: 767px) {
+  .period-stepper { flex: 1 1 auto; }
+  .period-current { flex: 1 1 auto; min-width: 0; }
+  .period-step { width: 38px; height: 38px; }
+  .period-current { height: 38px; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Insight list                                                      */
+/* ---------------------------------------------------------------- */
+
+.insights {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+
+.insight {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-6) var(--s-5) 0;
+  border-bottom: 1px solid var(--border-faint);
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease);
+}
+.insight:last-child { border-bottom: none; }
+a.insight:hover, button.insight:hover { background: var(--surface-2); }
+
+.insight-mark { align-self: stretch; border-radius: 0 2px 2px 0; }
+.insight-positive .insight-mark { background: var(--positive-mark); }
+.insight-warning .insight-mark { background: var(--negative-mark); }
+.insight-neutral .insight-mark { background: var(--border-strong); }
+
+.insight-title { font-size: var(--t-meta); color: var(--text-primary); font-weight: var(--fw-medium); }
+.insight-detail { font-size: var(--t-micro); color: var(--text-muted); line-height: var(--lh-snug); }
+
+@media (max-width: 599px) {
+  .insight { grid-template-columns: 3px minmax(0, 1fr); padding-right: var(--s-5); }
+  .insight > svg { display: none; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Delta                                                             */
+/* ---------------------------------------------------------------- */
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--t-micro);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.delta-positive { color: var(--positive); }
+.delta-warning { color: var(--negative); }
+.delta-neutral { color: var(--text-muted); }
+
+/* ---------------------------------------------------------------- */
+/* Sortable performance table                                        */
+/* ---------------------------------------------------------------- */
+
+.table th.sortable { cursor: pointer; user-select: none; }
+.table th.sortable:hover { color: var(--text-secondary); }
+.table th.sorted { color: var(--text-primary); }
+
+.sort-caret { display: inline-block; margin-left: 4px; opacity: 0.75; }
+
+/* ---------------------------------------------------------------- */
+/* Import workflow                                                   */
+/* ---------------------------------------------------------------- */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--s-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.step-on { color: var(--text-primary); }
+.step-on .step-index { border-color: var(--accent); color: var(--accent); }
+.step-done { color: var(--text-secondary); }
+.step-done .step-index { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.step-sep { flex: 0 1 24px; height: 1px; background: var(--border); }
+
+/* The drop target. Large, obvious and the only thing on the first screen. */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-6);
+  padding: var(--s-11) var(--s-8);
+  text-align: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-xl);
+  background: var(--surface-1);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  cursor: pointer;
+  width: 100%;
+}
+.dropzone:hover { border-color: var(--text-muted); background: var(--surface-2); }
+.dropzone-over { border-color: var(--accent); background: var(--accent-wash); }
+
+.dropzone-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.dropzone-over .dropzone-mark { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.dropzone-title { font-size: 17px; font-weight: var(--fw-semibold); color: var(--text-primary); }
+.dropzone-body { font-size: var(--t-meta); color: var(--text-secondary); max-width: 52ch; line-height: var(--lh-body); }
+
+@media (max-width: 767px) { .dropzone { padding: var(--s-9) var(--s-6); } }
+
+/* A sheet the importer recognised. */
+.sheet-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-6);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sheet-name { font-size: var(--t-subhead); font-weight: var(--fw-semibold); color: var(--text-primary); min-width: 0; }
+
+.sheet-body { padding: 0 var(--s-6) var(--s-6); }
+
+/* One mapped column: the spreadsheet's own header, then what it became. */
+.maprow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr);
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--border-faint);
+  min-width: 0;
+}
+.maprow:last-child { border-bottom: none; }
+
+.maprow-source { min-width: 0; }
+.maprow-header { font-size: var(--t-meta); color: var(--text-primary); }
+.maprow-sample { font-size: var(--t-micro); color: var(--text-muted); font-family: var(--font-mono); }
+.maprow-arrow { color: var(--text-muted); flex-shrink: 0; }
+.maprow select { height: var(--h-control-sm); font-size: var(--t-micro); padding-inline: var(--s-4) var(--s-8); }
+
+@media (max-width: 599px) {
+  .maprow { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .maprow-arrow { display: none; }
+  .maprow select { height: var(--h-control); font-size: var(--t-meta); }
+}
+
+.issue-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--border-faint);
+  font-size: var(--t-micro);
+}
+.issue-row:last-child { border-bottom: none; }
+.issue-where { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; }
+.issue-what { color: var(--text-secondary); }
+.issue-values { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+
+/* The confidence line at the end of the review. */
+.confidence {
+  display: flex;
+  align-items: center;
+  gap: var(--s-6);
+  padding: var(--s-6);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  flex-wrap: wrap;
+}
+.confidence-figure {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: var(--fw-semibold);
+  color: var(--positive);
+  letter-spacing: var(--track-tight);
+}
+
+/* ---------------------------------------------------------------- */
+/* Monthly report                                                    */
+/* ---------------------------------------------------------------- */
+
+.report {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.report-head {
+  padding: var(--s-9) var(--s-9) var(--s-8);
+  border-bottom: 1px solid var(--border);
+}
+
+.report-org {
+  font-size: var(--t-label);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.report-title {
+  font-size: 25px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-tight);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.report-period { font-size: var(--t-body); color: var(--text-secondary); }
+
+.report-section {
+  padding: var(--s-8) var(--s-9);
+  border-bottom: 1px solid var(--border-faint);
+}
+.report-section:last-child { border-bottom: none; }
+
+.report-section-label {
+  font-size: var(--t-label);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--s-6);
+}
+
+@media (max-width: 767px) {
+  .report-head { padding: var(--s-7) var(--s-6) var(--s-6); }
+  .report-section { padding: var(--s-7) var(--s-6); }
+}
+
+/* The report's own table runs tighter than the rest: it has more columns to
+   carry, and it is read as a block rather than scanned row by row. */
+.report .table { font-size: var(--t-micro); }
+.report .table th,
+.report .table td { padding-inline: var(--s-4); }
+.report .table td { height: auto; padding-block: var(--s-4); }
+
+/* A wide table scrolls inside its own frame rather than pushing the page. */
+.report .table-wrap { scrollbar-width: thin; }
+
+/* ---------------------------------------------------------------- */
+/* Print                                                             */
+/* ---------------------------------------------------------------- */
+
+/* A report goes to management, so printing gives ink on paper rather than a
+   screenshot of a dark screen. Only the report itself is printed. */
+@media print {
+  /* The vehicle table carries fourteen columns, which is a landscape page. */
+  @page { margin: 12mm; size: A4 landscape; }
+
+  :root {
+    --bg: #fff; --surface-1: #fff; --surface-2: #fff; --surface-3: #fff; --surface-sunk: #fafafa;
+    --border: #d6d6d6; --border-strong: #b4b4b4; --border-faint: #e6e6e6;
+    --text-primary: #111; --text-secondary: #454545; --text-muted: #6a6a6a;
+    --accent: #8a5a12; --positive: #12683f; --negative: #a32319;
+    --chart-grid: #e6e6e6; --chart-axis: #c0c0c0;
+  }
+
+  body { background: #fff; }
+
+  .sidebar, .topbar, .bottomnav, .page-head-actions, .toast-region,
+  .period, .segment, .steps, .report-actions { display: none !important; }
+
+  .page { padding: 0; max-width: none; }
+  .report { border: none; border-radius: 0; }
+  .report-section { break-inside: avoid; padding-inline: 0; }
+  .report-head { padding-inline: 0; }
+  .table { font-size: 10pt; }
+  .table td { height: auto; padding-block: 5px; }
+  a { text-decoration: none; color: inherit; }
+}

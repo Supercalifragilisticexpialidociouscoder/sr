@@ -5,11 +5,12 @@ import { ConfirmProvider } from './ui/Confirm'
 import { FormsProvider } from './features/forms/FormsProvider'
 import { AppShell } from './shell/AppShell'
 import { ErrorState, PageSkeleton } from './ui/primitives'
+import { OverviewPage } from './features/overview/OverviewPage'
+import { ImportPage } from './features/import/ImportPage'
 import { FleetPage } from './features/fleet/FleetPage'
 import { DriversPage } from './features/drivers/DriversPage'
 import { DriverDetailPage } from './features/drivers/DriverDetailPage'
 import { VehicleDetailPage } from './features/vehicle/VehicleDetailPage'
-import { AnalyticsPage } from './features/analytics/AnalyticsPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { NotFoundPage } from './features/NotFoundPage'
 
@@ -37,13 +38,15 @@ export function App() {
             <FormsProvider>
               <Routes>
                 <Route element={<AppShell />}>
-                  <Route index element={<Navigate to="/fleet" replace />} />
+                  <Route index element={<Gate><OverviewPage /></Gate>} />
+                  <Route path="/import" element={<Gate><ImportPage /></Gate>} />
                   <Route path="/fleet" element={<Gate><FleetPage /></Gate>} />
                   <Route path="/fleet/drivers" element={<Gate><DriversPage /></Gate>} />
                   <Route path="/fleet/drivers/:driverId" element={<Gate><DriverDetailPage /></Gate>} />
                   <Route path="/fleet/vehicles/:vehicleId" element={<Gate><VehicleDetailPage /></Gate>} />
                   <Route path="/fleet/vehicles/:vehicleId/:tab" element={<Gate><VehicleDetailPage /></Gate>} />
-                  <Route path="/analytics" element={<Gate><AnalyticsPage /></Gate>} />
+                  {/* Analytics folded into the overview; old links still resolve. */}
+                  <Route path="/analytics" element={<Navigate to="/" replace />} />
                   <Route path="/reports" element={<Gate><ReportsPage /></Gate>} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>

@@ -12,8 +12,20 @@ import {
   type ReactNode,
 } from 'react'
 import type {
-  Database, Driver, DriverPayment, Expense, FuelEntry, Maintenance, Trip, Vehicle,
+  Database, Driver, DriverPayment, Expense, FuelEntry, ImportBatch, Maintenance,
+  Trip, Vehicle,
 } from './types'
+
+/** The records one import adds. Mirrors `BuildResult` without the review data. */
+export interface ImportCommit {
+  vehicles: Vehicle[]
+  drivers: Driver[]
+  trips: Trip[]
+  fuel: FuelEntry[]
+  expenses: Expense[]
+  maintenance: Maintenance[]
+  driverPayments: DriverPayment[]
+}
 import { createInitialDatabase, EMPTY_DATABASE } from './initial'
 
 const STORAGE_KEY = 'sre.fleet.v2'
@@ -55,6 +67,8 @@ type Action =
   | { type: 'driverPayment/add'; payload: DriverPayment }
   | { type: 'driverPayment/remove'; id: string }
   | { type: 'db/replace'; db: Database }
+  | { type: 'import/commit'; batch: ImportBatch; result: ImportCommit }
+  | { type: 'import/undo'; importId: string }
 
 /** Newest first, so every list in the product reads the same way by default. */
 function byDateDesc<T extends { date: string; createdAt?: string }>(rows: T[]): T[] {
@@ -81,6 +95,51 @@ function reducer(state: State, action: Action): State {
       return { ...state, status: 'error', error: action.error }
     case 'db/replace':
       return { ...state, db: action.db }
+
+    case 'import/commit': {
+      const r = action.result
+      // Odometers move forward from whatever the import knows, never backwards.
+      const highest = new Map<string, number>()
+      for (const f of r.fuel) {
+        if (f.odometer > (highest.get(f.vehicleId) ?? 0)) highest.set(f.vehicleId, f.odometer)
+      }
+      const vehicles = [...db.vehicles, ...r.vehicles].map((v) => {
+        const reading = highest.get(v.id)
+        return reading && reading > v.odometer ? { ...v, odometer: reading } : v
+      })
+      return {
+        ...state,
+        db: {
+          vehicles,
+          drivers: [...db.drivers, ...r.drivers],
+          trips: byDateDesc([...db.trips, ...r.trips]),
+          fuel: byDateDesc([...db.fuel, ...r.fuel]),
+          expenses: byDateDesc([...db.expenses, ...r.expenses]),
+          maintenance: byDateDesc([...db.maintenance, ...r.maintenance]),
+          driverPayments: byDateDesc([...db.driverPayments, ...r.driverPayments]),
+          imports: [action.batch, ...db.imports],
+        },
+      }
+    }
+
+    /** Removes everything one import brought in, leaving other records alone. */
+    case 'import/undo': {
+      const id = action.importId
+      const keep = <T extends { importId?: string }>(rows: T[]) => rows.filter((r) => r.importId !== id)
+      return {
+        ...state,
+        db: {
+          vehicles: keep(db.vehicles),
+          drivers: keep(db.drivers),
+          trips: keep(db.trips),
+          fuel: keep(db.fuel),
+          expenses: keep(db.expenses),
+          maintenance: keep(db.maintenance),
+          driverPayments: keep(db.driverPayments),
+          imports: db.imports.filter((i) => i.id !== id),
+        },
+      }
+    }
 
     case 'vehicle/add':
       return { ...state, db: { ...db, vehicles: [action.payload, ...db.vehicles] } }
@@ -174,10 +233,27 @@ function readStored(): Database | null {
     const parsed = JSON.parse(raw) as Partial<Database>
     if (!parsed || !Array.isArray(parsed.vehicles)) return null
     // Merge against the empty shape so a database written by an older build
-    // gains new collections instead of crashing on `undefined.map`.
-    return { ...EMPTY_DATABASE, ...parsed } as Database
+    // gains new collections instead of crashing on `undefined.map`, then bring
+    // individual records up to the current shape.
+    return migrate({ ...EMPTY_DATABASE, ...parsed } as Database)
   } catch {
     return null
+  }
+}
+
+/**
+ * Brings a stored database up to the current record shape.
+ *
+ * Runs on every load and must stay cheap and total: a browser holding records
+ * from an earlier build has to keep working, not be silently dropped.
+ */
+function migrate(db: Database): Database {
+  const needsProduct = db.fuel.some((f) => !f.product)
+  if (!needsProduct) return db
+  return {
+    ...db,
+    // Fuel predates the diesel/AdBlue split, so it is all diesel.
+    fuel: db.fuel.map((f) => (f.product ? f : { ...f, product: 'diesel' as const })),
   }
 }
 

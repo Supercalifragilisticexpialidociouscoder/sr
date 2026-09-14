@@ -147,6 +147,8 @@ export function VehicleDetailPage() {
             <Figure label="Tonnage" value={tonnes(summary.tonnage)} />
             <Figure label="Cost per tonne" value={<Ratio value={summary.costPerTon} />} />
             <Figure label="Diesel" value={<Money value={summary.fuelCost} />} />
+            {summary.adblueCost > 0 && <Figure label="AdBlue" value={<Money value={summary.adblueCost} />} />}
+            {summary.fastagCost > 0 && <Figure label="FASTag" value={<Money value={summary.fastagCost} />} />}
           </Figures>
         </Readout>
       </Section>

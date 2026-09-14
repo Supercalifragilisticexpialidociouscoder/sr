@@ -124,6 +124,7 @@ export function createInitialDatabase(): Database {
       {
         id: 'f-1788232453138',
         date: '2026-09-01',
+        product: 'diesel',
         vehicleId: 'v-1788194114527',
         driverId: 'd-1788231761689',
         fuelStation: 'ShakarMart',
@@ -151,6 +152,8 @@ export function createInitialDatabase(): Database {
       },
     ],
 
+    imports: [],
+
     driverPayments: [
       {
         id: 'dp-1788232933828',
@@ -167,5 +170,5 @@ export function createInitialDatabase(): Database {
 
 export const EMPTY_DATABASE: Database = {
   vehicles: [], drivers: [], trips: [], fuel: [],
-  expenses: [], maintenance: [], driverPayments: [],
+  expenses: [], maintenance: [], driverPayments: [], imports: [],
 }

@@ -60,6 +60,7 @@ export function FinancialsTab({ vehicle, summary, range }: TabProps) {
             <span className="t-label">Expenses</span>
             <Figures>
               <Line label="Diesel" value={c.diesel} />
+              <Line label="AdBlue" value={c.adblue} muted />
               <Line label="Driver costs" value={c.driver} />
               <Line label="Maintenance and repairs" value={maintenanceTotal} muted />
               <Line label="Tyres" value={c.tyres} muted />
@@ -67,7 +68,7 @@ export function FinancialsTab({ vehicle, summary, range }: TabProps) {
               <Line label="FASTag" value={c.fastag} muted />
               <Line label="Toll" value={c.toll} muted />
               <Line label="Insurance" value={c.insurance} muted />
-              <Line label="Permit and documents" value={c.permit} muted />
+              <Line label="Documents" value={c.documents} muted />
               <Line label="Other" value={c.other} muted />
               <Figure label="Total expenses" value={<Money value={summary.expenses} />} total />
             </Figures>

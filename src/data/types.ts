@@ -15,7 +15,7 @@ export type VehicleType =
 export type FuelType = 'diesel' | 'petrol' | 'cng' | 'electric'
 export type VehicleStatus = 'active' | 'on-trip' | 'maintenance' | 'idle' | 'retired'
 
-export interface Vehicle {
+export interface Vehicle extends Sourced {
   id: string
   registrationNumber: string
   name: string
@@ -37,7 +37,7 @@ export interface Vehicle {
   updatedAt: string
 }
 
-export interface Driver {
+export interface Driver extends Sourced {
   id: string
   name: string
   phone: string
@@ -54,7 +54,7 @@ export interface Driver {
 
 export type TripStatus = 'completed' | 'in-transit' | 'cancelled'
 
-export interface Trip {
+export interface Trip extends Sourced {
   id: string
   date: string
   /** May be blank — not every trip is given a number. */
@@ -77,9 +77,14 @@ export interface Trip {
 
 export type PaymentMethod = 'cash' | 'upi' | 'card' | 'fastag' | 'bank' | 'credit'
 
-export interface FuelEntry {
+/** Diesel and AdBlue are both bought by the litre at a pump, so they share a
+ *  record shape. The product decides which expense category they post to. */
+export type FuelProduct = 'diesel' | 'adblue'
+
+export interface FuelEntry extends Sourced {
   id: string
   date: string
+  product: FuelProduct
   vehicleId: string
   driverId: string | null
   fuelStation: string
@@ -99,11 +104,11 @@ export interface FuelEntry {
  * structurally impossible rather than a rule people have to remember.
  */
 export type ExpenseCategory =
-  | 'diesel' | 'tyres' | 'puncture' | 'service' | 'repairs' | 'fastag'
-  | 'driver' | 'insurance' | 'permit' | 'toll' | 'parts' | 'other'
+  | 'diesel' | 'adblue' | 'fastag' | 'toll' | 'driver' | 'service'
+  | 'tyres' | 'puncture' | 'repairs' | 'parts' | 'insurance' | 'documents' | 'other'
 
 /** A directly-entered expense. Never carries a category owned by another ledger. */
-export interface Expense {
+export interface Expense extends Sourced {
   id: string
   date: string
   vehicleId: string | null
@@ -117,7 +122,7 @@ export interface Expense {
 
 export type MaintenanceType = 'service' | 'oil-change' | 'tyres' | 'puncture' | 'repairs' | 'parts'
 
-export interface Maintenance {
+export interface Maintenance extends Sourced {
   id: string
   date: string
   vehicleId: string
@@ -131,7 +136,7 @@ export interface Maintenance {
 
 export type DriverPaymentType = 'salary' | 'advance' | 'trip-payment' | 'other'
 
-export interface DriverPayment {
+export interface DriverPayment extends Sourced {
   id: string
   driverId: string
   date: string
@@ -139,6 +144,53 @@ export interface DriverPayment {
   amount: number
   notes?: string
   createdAt: string
+}
+
+/**
+ * Where a record came from.
+ *
+ * Kept on every record so an imported figure can always be traced back to the
+ * file it arrived in, and so imported data is never silently mixed with
+ * anything entered by hand.
+ */
+export interface Sourced {
+  importId?: string
+}
+
+export type SheetKind =
+  | 'trips' | 'fuel' | 'adblue' | 'expenses' | 'maintenance'
+  | 'vehicles' | 'drivers' | 'driver-payments' | 'unknown'
+
+export interface ImportIssue {
+  sheet: string
+  row: number
+  problem: string
+  suggestion?: string
+  /** The offending row, for display on the review screen. */
+  values: (string | number | null)[]
+}
+
+export interface ImportSheetSummary {
+  name: string
+  kind: SheetKind
+  /** 0–1: how confident the classifier is about `kind`. */
+  confidence: number
+  rowsRead: number
+  imported: number
+  skipped: number
+  duplicates: number
+}
+
+/** One upload. Records created by it carry its id in `importId`. */
+export interface ImportBatch {
+  id: string
+  fileName: string
+  importedAt: string
+  sheets: ImportSheetSummary[]
+  counts: Record<string, number>
+  issues: ImportIssue[]
+  /** Fingerprint of the workbook's headers, so the mapping can be reused. */
+  signature: string
 }
 
 export interface Database {
@@ -149,6 +201,7 @@ export interface Database {
   expenses: Expense[]
   maintenance: Maintenance[]
   driverPayments: DriverPayment[]
+  imports: ImportBatch[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -165,6 +218,7 @@ export type LedgerSource = 'fuel' | 'maintenance' | 'driver' | 'direct'
  */
 export const CATEGORY_SOURCE: Record<ExpenseCategory, LedgerSource> = {
   diesel: 'fuel',
+  adblue: 'fuel',
   service: 'maintenance',
   tyres: 'maintenance',
   puncture: 'maintenance',
@@ -172,11 +226,17 @@ export const CATEGORY_SOURCE: Record<ExpenseCategory, LedgerSource> = {
   parts: 'maintenance',
   driver: 'driver',
   fastag: 'direct',
-  insurance: 'direct',
-  permit: 'direct',
   toll: 'direct',
+  insurance: 'direct',
+  documents: 'direct',
   other: 'direct',
 }
+
+/** Expense categories in the order the business thinks about them. */
+export const CATEGORY_ORDER: ExpenseCategory[] = [
+  'diesel', 'adblue', 'fastag', 'toll', 'driver', 'service',
+  'tyres', 'puncture', 'repairs', 'parts', 'insurance', 'documents', 'other',
+]
 
 /** Categories a user may pick in the Add Expense form. */
 export const DIRECT_CATEGORIES = (Object.keys(CATEGORY_SOURCE) as ExpenseCategory[])
@@ -235,10 +295,10 @@ export const TRIP_STATUS_LABEL: Record<TripStatus, string> = {
 }
 
 export const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
-  diesel: 'Diesel', tyres: 'Tyres', puncture: 'Puncture', service: 'Service',
-  repairs: 'Repairs', fastag: 'FASTag', driver: 'Driver payment',
-  insurance: 'Insurance', permit: 'Permit / documents', toll: 'Toll',
-  parts: 'Parts', other: 'Other',
+  diesel: 'Diesel', adblue: 'AdBlue', fastag: 'FASTag', toll: 'Toll',
+  driver: 'Driver', service: 'Maintenance', tyres: 'Tyres',
+  puncture: 'Puncture', repairs: 'Repairs', parts: 'Parts',
+  insurance: 'Insurance', documents: 'Documents', other: 'Other',
 }
 
 export const MAINTENANCE_TYPE_LABEL: Record<MaintenanceType, string> = {

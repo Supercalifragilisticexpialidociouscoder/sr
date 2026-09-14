@@ -12,8 +12,10 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { IconButton } from '../ui/Button'
 import { Modal } from '../ui/Modal'
+import { SearchDialog } from '../ui/SearchDialog'
 import { useConfirm } from '../ui/Confirm'
 import { useToast } from '../ui/Toast'
 import { useStore } from '../data/store'
@@ -22,14 +24,14 @@ import { useAlerts } from '../data/alerts'
 import { plate, todayISO } from '../data/format'
 import { vehicleColor } from '../features/shared'
 import {
-  ChartIcon, FileIcon, FuelIcon, PlusIcon, ReceiptIcon, RouteIcon,
-  TrashIcon, TruckIcon, UsersIcon, WrenchIcon,
+  ChartIcon, FileIcon, FuelIcon, InboxIcon, PlusIcon, ReceiptIcon, RouteIcon,
+  SearchIcon, TrashIcon, TruckIcon, UsersIcon, WrenchIcon,
 } from '../ui/icons'
 
 const SECTIONS = [
-  { to: '/fleet', label: 'Fleet', Icon: TruckIcon },
-  { to: '/analytics', label: 'Analytics', Icon: ChartIcon },
-  { to: '/reports', label: 'Reports', Icon: FileIcon },
+  { to: '/', label: 'Overview', Icon: ChartIcon, end: true },
+  { to: '/fleet', label: 'Fleet', Icon: TruckIcon, end: false },
+  { to: '/reports', label: 'Reports', Icon: FileIcon, end: false },
 ] as const
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -54,7 +56,7 @@ interface QuickAction {
 function useQuickActions(): QuickAction[] {
   const { openForm } = useForms()
   return [
-    { label: 'Log trip', Icon: RouteIcon, run: () => openForm({ kind: 'trip' }), primary: true },
+    { label: 'Log trip', Icon: RouteIcon, run: () => openForm({ kind: 'trip' }) },
     { label: 'Add fuel', Icon: FuelIcon, run: () => openForm({ kind: 'fuel' }) },
     { label: 'Add expense', Icon: ReceiptIcon, run: () => openForm({ kind: 'expense' }) },
     { label: 'Add maintenance', Icon: WrenchIcon, run: () => openForm({ kind: 'maintenance' }) },
@@ -65,8 +67,10 @@ function useQuickActions(): QuickAction[] {
 
 export function AppShell() {
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const actions = useQuickActions()
   const location = useLocation()
+  const navigate = useNavigate()
   const { db, resetToImport, clearAll } = useStore()
   const confirm = useConfirm()
   const toast = useToast()
@@ -75,8 +79,20 @@ export function AppShell() {
   const urgent = alerts.filter((a) => a.severity !== 'info').length
   const hasCritical = alerts.some((a) => a.severity === 'critical')
 
-  /* A navigation always closes the sheet — it must never linger over a new page. */
-  useEffect(() => { setSheetOpen(false) }, [location.pathname])
+  /* A navigation always closes the overlays — they must never linger over a new page. */
+  useEffect(() => { setSheetOpen(false); setSearchOpen(false) }, [location.pathname])
+
+  /* Ctrl/Cmd-K opens search, the way every tool with a search box does. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   /* Every route change returns the reader to the top of the document. */
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }) }, [location.pathname])
@@ -112,10 +128,7 @@ export function AppShell() {
     toast.success('All records cleared', 'Add a vehicle to start entering your own.')
   }, [confirm, clearAll, toast, db])
 
-  const sectionCount = (to: string) => {
-    if (to === '/fleet') return db.vehicles.length || undefined
-    return undefined
-  }
+  const sectionCount = (to: string) => (to === '/fleet' ? db.vehicles.length || undefined : undefined)
 
   return (
     <div className="shell">
@@ -124,11 +137,20 @@ export function AppShell() {
       <aside className="sidebar">
         <Brand />
 
+        <div style={{ padding: '0 var(--s-5) var(--s-5)' }}>
+          <button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}>
+            <SearchIcon size={14} />
+            <span className="grow">Search</span>
+            <kbd className="search-kbd">⌘K</kbd>
+          </button>
+        </div>
+
         <nav className="nav" aria-label="Sections">
-          {SECTIONS.map(({ to, label, Icon }) => (
+          {SECTIONS.map(({ to, label, Icon, end }) => (
             <NavLink
               key={to}
               to={to}
+              end={end}
               className={({ isActive }) => `nav-item${isActive ? ' nav-item-on' : ''}`}
             >
               <Icon size={17} />
@@ -167,7 +189,11 @@ export function AppShell() {
             </>
           )}
 
-          <p className="nav-group-label">Record</p>
+          <p className="nav-group-label">Add</p>
+          <NavLink to="/import" className="btn btn-primary" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 5 }}>
+            <InboxIcon size={15} />
+            <span className="truncate">Import Excel</span>
+          </NavLink>
           {actions.map((action) => (
             <button
               key={action.label}
@@ -202,10 +228,11 @@ export function AppShell() {
           <Brand compact />
 
           <nav className="segment topbar-sections" aria-label="Sections">
-            {SECTIONS.map(({ to, label }) => (
+            {SECTIONS.map(({ to, label, end }) => (
               <NavLink
                 key={to}
                 to={to}
+                end={end}
                 className={({ isActive }) => `segment-item${isActive ? ' segment-on' : ''}`}
               >
                 {label}
@@ -213,6 +240,9 @@ export function AppShell() {
             ))}
           </nav>
 
+          <IconButton label="Search" onClick={() => setSearchOpen(true)}>
+            <SearchIcon size={16} />
+          </IconButton>
           <button
             type="button"
             className="btn btn-primary btn-sm"
@@ -220,7 +250,7 @@ export function AppShell() {
             aria-haspopup="dialog"
           >
             <PlusIcon size={15} />
-            New
+            Add
           </button>
         </header>
 
@@ -230,10 +260,11 @@ export function AppShell() {
       </div>
 
       <nav className="bottomnav" aria-label="Sections">
-        {SECTIONS.map(({ to, label, Icon }) => (
+        {SECTIONS.map(({ to, label, Icon, end }) => (
           <NavLink
             key={to}
             to={to}
+            end={end}
             className={({ isActive }) => `bottomnav-item${isActive ? ' bottomnav-on' : ''}`}
           >
             <Icon size={20} />
@@ -247,9 +278,11 @@ export function AppShell() {
           aria-haspopup="dialog"
         >
           <PlusIcon size={20} />
-          New
+          Add
         </button>
       </nav>
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <Modal
         open={sheetOpen}
@@ -259,6 +292,16 @@ export function AppShell() {
         width={460}
       >
         <div className="quick-sheet stack stack-3">
+          <button
+            type="button"
+            className="quick-item"
+            onClick={() => { setSheetOpen(false); navigate('/import') }}
+            style={{ color: 'var(--accent)' }}
+          >
+            <InboxIcon size={18} />
+            Import Excel
+          </button>
+          <hr className="rule" style={{ margin: '6px 0' }} />
           {actions.map((action) => (
             <button
               key={action.label}
